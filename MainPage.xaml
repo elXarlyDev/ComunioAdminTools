@@ -1,0 +1,158 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="ComunioAdminTools.MainPage"
+    Title="Comunio Admin Tools"
+    BackgroundColor="#F5F7F5">
+
+    <Grid>
+        <ScrollView>
+            <VerticalStackLayout
+                Padding="30"
+                Spacing="20"
+                VerticalOptions="Center">
+
+            <!-- Capçalera -->
+            <VerticalStackLayout
+                Spacing="5"
+                Margin="0,0,0,20">
+
+                <Label
+                    Text="comunio"
+                    FontSize="40"
+                    FontAttributes="Bold"
+                    TextColor="#0B4D2C"
+                    HorizontalOptions="Center" />
+
+                <Label
+                    Text="Admin Tools"
+                    FontSize="18"
+                    TextColor="#66736B"
+                    HorizontalOptions="Center" />
+
+            </VerticalStackLayout>
+
+            <!-- Usuari -->
+            <VerticalStackLayout Spacing="7">
+
+                <Label
+                    Text="Usuari"
+                    FontSize="15"
+                    FontAttributes="Bold"
+                    TextColor="#26332B" />
+
+                <Border
+                    BackgroundColor="White"
+                    Stroke="#D7DED9"
+                    StrokeThickness="1"
+                    Padding="12,4">
+
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="8" />
+                    </Border.StrokeShape>
+
+                    <Entry
+                        x:Name="UsernameEntry"
+                        Placeholder="Introdueix l'usuari"
+                        FontSize="16"
+                        TextColor="#1E1E1E"
+                        PlaceholderColor="#9A9A9A"
+                        BackgroundColor="Transparent"
+                        ClearButtonVisibility="WhileEditing" />
+
+                </Border>
+
+            </VerticalStackLayout>
+
+            <!-- Contrasenya -->
+            <VerticalStackLayout Spacing="7">
+
+                <Label
+                    Text="Contrasenya"
+                    FontSize="15"
+                    FontAttributes="Bold"
+                    TextColor="#26332B" />
+
+                <Border
+                    BackgroundColor="White"
+                    Stroke="#D7DED9"
+                    StrokeThickness="1"
+                    Padding="12,4">
+
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="8" />
+                    </Border.StrokeShape>
+
+                    <Entry
+                        x:Name="PasswordEntry"
+                        Placeholder="Introdueix la contrasenya"
+                        FontSize="16"
+                        TextColor="#1E1E1E"
+                        PlaceholderColor="#9A9A9A"
+                        BackgroundColor="Transparent"
+                        IsPassword="True" />
+
+                </Border>
+
+            </VerticalStackLayout>
+
+                <Button
+                    x:Name="ShowTeamsLastPointsButton"
+                    Text="Consultar punts última jornada"
+                    FontSize="17"
+                    FontAttributes="Bold"
+                    TextColor="White"
+                    BackgroundColor="#6C757D"
+                    HeightRequest="52"
+                    CornerRadius="10"
+                    Margin="0,15,0,0"
+                    Clicked="ShowTeamsLastPoints"
+                    Pressed="OnButtonPressed"
+                    Released="OnButtonReleased" />
+                <Button
+                    x:Name="SetPointsCashButton"
+                    Text="Posar diners dels punts"
+                    FontSize="17"
+                    FontAttributes="Bold"
+                    TextColor="White"
+                    BackgroundColor="#0B4D2C"
+                    HeightRequest="52"
+                    CornerRadius="10"
+                    Margin="0,15,0,0"
+                    Clicked="OnPosarPuntsClicked"
+                    Pressed="OnButtonPressed"
+                    Released="OnButtonReleased" />
+
+                <Button
+                    x:Name="RevertPointsCashButton"
+                    Text="Revertir diners dels punts"
+                    FontSize="17"
+                    FontAttributes="Bold"
+                    TextColor="White"
+                    BackgroundColor="#D9534F"
+                    HeightRequest="52"
+                    CornerRadius="10"
+                    Margin="0,15,0,0"
+                    Clicked="OnRevertirPuntsClicked"
+                    Pressed="OnButtonPressed"
+                    Released="OnButtonReleased" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Overlay de carga -->
+        <Grid x:Name="LoadingOverlay"
+              BackgroundColor="#80000000"
+              IsVisible="False">
+            <Frame HasShadow="False" CornerRadius="12" BackgroundColor="#FFFFFF" HorizontalOptions="Center" VerticalOptions="Center" WidthRequest="220" HeightRequest="120" Padding="0">
+                <VerticalStackLayout Padding="20" Spacing="12" HorizontalOptions="Center" VerticalOptions="Center">
+                    <ActivityIndicator x:Name="LoadingIndicator" IsRunning="False" Color="#0B4D2C" HorizontalOptions="Center" />
+                    <Label Text="Cargando..." HorizontalOptions="Center" TextColor="#26332B" />
+                </VerticalStackLayout>
+            </Frame>
+        </Grid>
+
+    </Grid>
+
+</ContentPage>
