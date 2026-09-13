@@ -1,4 +1,4 @@
 # Ignorar keystore privado
 comunio.keystore
 signing.props
-signing.props.template
+signing.props

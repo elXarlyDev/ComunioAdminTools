@@ -76,7 +76,7 @@ public partial class MainPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Error", ex.Message, "OK");
+            await DisplayAlertAsync("Error", ex.Message + Environment.NewLine + ex.StackTrace, "OK");
         }
         finally
         {

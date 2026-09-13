@@ -47,6 +47,9 @@
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 	</PropertyGroup>
 
+	<!-- Import local signing props if present (contains keystore path and passwords). This file should be ignored by git. -->
+	<Import Project="Platforms\Android\signing\signing.props" Condition="Exists('Platforms\Android\signing\signing.props')" />
+
 	<ItemGroup>
 		<!-- App Icon -->
 		<MauiIcon Include="Resources\AppIcon\appicon.png" />
@@ -64,6 +67,24 @@
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
+
+	<!-- Android packaging and signing for Release builds -->
+	<PropertyGroup Condition="'$(Configuration)' == 'Release' and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
+		<!-- Force APK output instead of AAB for Release (useful for local distribution) -->
+		<AndroidPackageFormat>apk</AndroidPackageFormat>
+		<!-- Produce a single APK per ABI set (optional) -->
+		<AndroidPackageFormatAssembliesForMultipleAbis>false</AndroidPackageFormatAssembliesForMultipleAbis>
+		<!-- Reduce size (optional) -->
+		<AndroidLinkMode>SdkOnly</AndroidLinkMode>
+		<!-- Enable release signing if a keystore is present -->
+		<!-- The following properties are set only when the keystore file exists -->
+		<AndroidSigningKeyStore Condition="Exists('$(MSBuildProjectDirectory)\Platforms\Android\signing\comunio.keystore')">$(MSBuildProjectDirectory)\Platforms\Android\signing\comunio.keystore</AndroidSigningKeyStore>
+		<AndroidKeyStore Condition="Exists('$(MSBuildProjectDirectory)\Platforms\Android\signing\comunio.keystore')">true</AndroidKeyStore>
+		<AndroidSigningKeyAlias Condition="Exists('$(MSBuildProjectDirectory)\Platforms\Android\signing\comunio.keystore')">comunioalias</AndroidSigningKeyAlias>
+		<!-- Set these passwords via environment variables in CI or local machine for security -->
+		<AndroidSigningKeyStorePassword Condition="Exists('$(MSBuildProjectDirectory)\Platforms\Android\signing\comunio.keystore')">Valencia_98</AndroidSigningKeyStorePassword>
+		<AndroidSigningKeyAliasPassword Condition="Exists('$(MSBuildProjectDirectory)\Platforms\Android\signing\comunio.keystore')">comunioalias</AndroidSigningKeyAliasPassword>
+	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
