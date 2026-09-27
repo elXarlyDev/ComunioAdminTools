@@ -34,8 +34,8 @@
 		<ApplicationId>com.companyname.comunioadmintools</ApplicationId>
 
 		<!-- Versions -->
-		<ApplicationDisplayVersion>1.1</ApplicationDisplayVersion>
-		<ApplicationVersion>2</ApplicationVersion>
+		<ApplicationDisplayVersion>1.2</ApplicationDisplayVersion>
+		<ApplicationVersion>3</ApplicationVersion>
 
 		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
 		<WindowsPackageType>None</WindowsPackageType>
@@ -47,6 +47,18 @@
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 	</PropertyGroup>
 
+	<!-- Work around the .NET 10.0.401 task-host failure during Android Release trimming.
+	     Run the same ILLink tasks inside the .NET MSBuild process.
+	     Skip registration during restore evaluations where ILLinkTasksAssembly is not defined. -->
+	<UsingTask TaskName="ComputeManagedAssemblies"
+		AssemblyFile="$(ILLinkTasksAssembly)"
+		Override="true"
+		Condition="'$(ILLinkTasksAssembly)' != '' and '$(MSBuildRuntimeType)' == 'Core' and '$(NETCoreSdkVersion)' == '10.0.401' and '$(TargetFramework)' == 'net10.0-android' and '$(Configuration)' == 'Release'" />
+	<UsingTask TaskName="ILLink"
+		AssemblyFile="$(ILLinkTasksAssembly)"
+		Override="true"
+		Condition="'$(ILLinkTasksAssembly)' != '' and '$(MSBuildRuntimeType)' == 'Core' and '$(NETCoreSdkVersion)' == '10.0.401' and '$(TargetFramework)' == 'net10.0-android' and '$(Configuration)' == 'Release'" />
+
 	<!-- Import local signing props if present (contains keystore path and passwords). This file should be ignored by git. -->
 	<Import Project="Platforms\Android\signing\signing.props" Condition="Exists('Platforms\Android\signing\signing.props')" />
 
@@ -55,7 +67,7 @@
 		<MauiIcon Include="Resources\AppIcon\appicon.png" />
 		
 		<!-- Splash Screen -->
-		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
+		<MauiSplashScreen Include="Resources\Splash\comunio_splash.png" Color="#0B4D2C" BaseSize="128,128" Resize="true" />
 
 		<!-- Images -->
 		<MauiImage Include="Resources\Images\*" />
