@@ -53,6 +53,53 @@ public partial class MainPage : ContentPage
         await ManagePunts(sender, e, isRevertingPoints: true);
     }
 
+    private async void OnAddFiveMillionCashClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            SetLoading(true);
+            using var httpClient = new HttpClient();
+            var tokenResponse = await httpClient.PostAsync<LoginModel, TokenResponse>("https://api.comunio.es/login", new LoginModel
+            {
+                Username = UsernameEntry.Text ?? string.Empty,
+                Password = PasswordEntry.Text ?? string.Empty
+            });
+
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokenResponse.AccessToken);
+            var sessionData = await httpClient.GetAsync<SessionDataModel>("https://api.comunio.es");
+
+            if (!sessionData.User.IsLeader && !sessionData.User.IsAdmin)
+            {
+                await DisplayAlertAsync("Error", "No tienes permisos para realizar esta acción.", "OK");
+                return;
+            }
+
+            var standings = await httpClient.GetAsync<StandingsModel>($"https://api.comunio.es/communities/{sessionData.Community.Id}/standings?period=total&wpe=true");
+
+            foreach (var team in standings.Teams)
+            {
+                await httpClient.PostWithoutResponseAsync($"https://api.comunio.es/communities/{sessionData.Community.Id}/users/{team.TeamInfo.User.Id}/penalties", new PostCashRequestModel
+                {
+                    Amount = 5000000,
+                    Reason = "PARÓ SELECCIONS"
+                });
+
+            }
+
+            LoadingOverlay.IsVisible = false;
+            LoadingIndicator.IsRunning = false;
+            await DisplayAlertAsync("Abonament completat", "S'han abonat 5M a cada usuari debut al paró de seleccions", "OK");
+        }
+        catch (Exception)
+        {
+            await DisplayAlertAsync("Error", $"No se ha podido completar el abono a todos los usuarios", "OK");
+        }
+        finally
+        {
+            SetLoading(false);
+        }
+    }
+
     private async void OnCheckSquadExcessClicked(object sender, EventArgs e)
     {
         try
@@ -111,6 +158,7 @@ public partial class MainPage : ContentPage
         LoadingIndicator.IsRunning = isLoading;
         SetPointsCashButton.IsEnabled = !isLoading;
         RevertPointsCashButton.IsEnabled = !isLoading;
+        AddFiveMillionCashButton.IsEnabled = !isLoading;
         ShowTeamsLastPointsButton.IsEnabled = !isLoading;
         CheckSquadExcessButton.IsEnabled = !isLoading;
     }
