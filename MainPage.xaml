@@ -1,23 +1,24 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 
 <ContentPage
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:ComunioAdminTools.Controls"
     x:Class="ComunioAdminTools.MainPage"
-    Title="Comunio Admin Tools"
+    Shell.NavBarIsVisible="False"
     BackgroundColor="#F5F7F5">
 
     <Grid>
-        <ScrollView>
+        <ScrollView x:Name="MainContent">
             <VerticalStackLayout
-                Padding="30"
+                Padding="30,0,30,30"
                 Spacing="20"
-                VerticalOptions="Center">
+                VerticalOptions="Start">
 
             <!-- Capçalera -->
             <VerticalStackLayout
                 Spacing="5"
-                Margin="0,0,0,20">
+                Margin="0,0,0,0">
 
                 <Label
                     Text="comunio"
@@ -35,7 +36,7 @@
             </VerticalStackLayout>
 
             <!-- Usuari -->
-            <VerticalStackLayout Spacing="7">
+            <VerticalStackLayout Spacing="2">
 
                 <Label
                     Text="Usuari"
@@ -67,7 +68,7 @@
             </VerticalStackLayout>
 
             <!-- Contrasenya -->
-            <VerticalStackLayout Spacing="7">
+            <VerticalStackLayout Spacing="2">
 
                 <Label
                     Text="Contrasenya"
@@ -98,46 +99,96 @@
 
             </VerticalStackLayout>
 
-                <Button
-                    x:Name="ShowTeamsLastPointsButton"
-                    Text="Consultar punts última jornada"
-                    FontSize="17"
-                    FontAttributes="Bold"
-                    TextColor="White"
-                    BackgroundColor="#6C757D"
-                    HeightRequest="52"
-                    CornerRadius="10"
-                    Margin="0,15,0,0"
-                    Clicked="ShowTeamsLastPoints"
-                    Pressed="OnButtonPressed"
-                    Released="OnButtonReleased" />
-                <Button
-                    x:Name="SetPointsCashButton"
-                    Text="Posar diners dels punts"
-                    FontSize="17"
-                    FontAttributes="Bold"
-                    TextColor="White"
-                    BackgroundColor="#0B4D2C"
-                    HeightRequest="52"
-                    CornerRadius="10"
-                    Margin="0,15,0,0"
-                    Clicked="OnPosarPuntsClicked"
-                    Pressed="OnButtonPressed"
-                    Released="OnButtonReleased" />
+                <Border BackgroundColor="White" Stroke="#D7DED9" Padding="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="0" />
+                    </Border.StrokeShape>
+                    <VerticalStackLayout Spacing="0">
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,3" ColumnSpacing="0" RowSpacing="0">
+                            <Button x:Name="DinersTabButton"
+                                    Text="Diners"
+                                    FontSize="17"
+                                    FontAttributes="Bold"
+                                    BackgroundColor="#DCEBE2"
+                                    TextColor="#0B4D2C"
+                                    CornerRadius="0"
+                                    BorderWidth="0"
+                                    Margin="0"
+                                    HorizontalOptions="Fill"
+                                    MinimumHeightRequest="48"
+                                    SemanticProperties.Description="Diners, pestanya seleccionada"
+                                    Clicked="OnDinersTabClicked" />
+                            <Button x:Name="ConsultesTabButton"
+                                    Grid.Column="1"
+                                    Text="Consultes"
+                                    FontSize="17"
+                                    FontAttributes="Bold"
+                                    BackgroundColor="White"
+                                    TextColor="#0B4D2C"
+                                    CornerRadius="0"
+                                    BorderWidth="0"
+                                    Margin="0"
+                                    HorizontalOptions="Fill"
+                                    MinimumHeightRequest="48"
+                                    SemanticProperties.Description="Consultes, pestanya no seleccionada"
+                                    Clicked="OnConsultesTabClicked" />
+                            <BoxView Grid.Row="1" Grid.ColumnSpan="2" Color="#0B4D2C" InputTransparent="True" />
+                        </Grid>
+                        <VerticalStackLayout x:Name="DinersPanel" Spacing="40" Padding="36,60,36,16">
+                            <Button
+                                x:Name="SetPointsCashButton"
+                                Text="Posar diners dels punts"
+                                FontSize="17"
+                                FontAttributes="Bold"
+                                TextColor="White"
+                                BackgroundColor="#0B4D2C"
+                                HeightRequest="52"
+                                CornerRadius="10"
+                                Clicked="OnPosarPuntsClicked"
+                                Pressed="OnButtonPressed"
+                                Released="OnButtonReleased" />
 
-                <Button
-                    x:Name="RevertPointsCashButton"
-                    Text="Revertir diners dels punts"
-                    FontSize="17"
-                    FontAttributes="Bold"
-                    TextColor="White"
-                    BackgroundColor="#D9534F"
-                    HeightRequest="52"
-                    CornerRadius="10"
-                    Margin="0,15,0,0"
-                    Clicked="OnRevertirPuntsClicked"
-                    Pressed="OnButtonPressed"
-                    Released="OnButtonReleased" />
+                            <Button
+                                x:Name="RevertPointsCashButton"
+                                Text="Revertir diners dels punts"
+                                FontSize="17"
+                                FontAttributes="Bold"
+                                TextColor="White"
+                                BackgroundColor="#D9534F"
+                                HeightRequest="52"
+                                CornerRadius="10"
+                                Clicked="OnRevertirPuntsClicked"
+                                Pressed="OnButtonPressed"
+                                Released="OnButtonReleased" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout x:Name="ConsultesPanel" Spacing="40" Padding="36,60,36,16" IsVisible="False">
+                            <Button
+                                x:Name="ShowTeamsLastPointsButton"
+                                Text="Consultar punts última jornada"
+                                FontSize="17"
+                                FontAttributes="Bold"
+                                TextColor="White"
+                                BackgroundColor="#6C757D"
+                                HeightRequest="52"
+                                CornerRadius="10"
+                                Clicked="ShowTeamsLastPoints"
+                                Pressed="OnButtonPressed"
+                                Released="OnButtonReleased" />
+                            <Button
+                                x:Name="CheckSquadExcessButton"
+                                Text="Comprovar excés de plantilla"
+                                FontSize="17"
+                                FontAttributes="Bold"
+                                TextColor="White"
+                                BackgroundColor="#6C757D"
+                                HeightRequest="52"
+                                CornerRadius="10"
+                                Clicked="OnCheckSquadExcessClicked"
+                                Pressed="OnButtonPressed"
+                                Released="OnButtonReleased" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
             </VerticalStackLayout>
         </ScrollView>
 
@@ -152,7 +203,8 @@
                 </VerticalStackLayout>
             </Frame>
         </Grid>
-
+        
+        <controls:ResultsPopup x:Name="ActionResultsPopup" />
     </Grid>
 
 </ContentPage>
