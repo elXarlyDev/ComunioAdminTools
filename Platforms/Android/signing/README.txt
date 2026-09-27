@@ -31,28 +31,10 @@ ______________________________
 
 GENERACIÓN DE LA APK:
 
+Para generar la APK, ejecutar el script CrearAndroidApk.ps1 que hay en la carpeta superior.  La APK generada se encontrará en .\ComunioAdminTools\bin\Release\net10.0-android\publish
+
 Requisitos para ejecutar el comando de publicación:
 
 - Tener Java JDK (p. ej. 26.0.2.1) instalado y agregado al PATH:
 	$env:JAVA_HOME = "C:\Program Files\Java\jdk-26.0.2.1"
 	>> $env:Path = "$env:JAVA_HOME\bin;$env:Path"
-
-1) Ejecutar este comando en el directorio raiz del proyecto:
-
-dotnet publish -f net10.0-android -c Release `
->>     -p:AndroidPackageFormat=apk `
->>     -p:AndroidKeyStore=true `
->>     -p:AndroidSigningKeyStore="Platforms\Android\signing\comunio.keystore" `
->>     -p:AndroidSigningKeyAlias="comunioalias" `
->>     -p:AndroidSigningStorePass="(LA CONTRASEÑA)" `
->>     -p:AndroidSigningKeyPass="(LA CONTRASEÑA)"
-
-2) El APK generado estará en la ruta: .\bin\Release\net10.0-android\publish. A partir de ese APK crear una firma correcta usando este comando
-
-java -jar "C:\Program Files (x86)\Android\android-sdk\build-tools\36.0.0\lib\apksigner.jar" sign `
->>     --ks ".\Platforms\Android\signing\comunio.keystore" `
->>     --ks-key-alias comunioalias `
->>     --ks-pass env:KS_PASS `
->>     --key-pass env:KEY_PASS `
->>     --out ".\bin\Release\net10.0-android\publish\ComunioAdminTools-FINAL.apk" `
->>     ".\bin\Release\net10.0-android\publish\comunio_admin_tools.comunio_admin_tools.apk"
