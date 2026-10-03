@@ -17,6 +17,7 @@ namespace ComunioAdminTools.Mobile
                 });
 
             builder.Services.AddMauiBlazorWebView();
+            builder.Services.AddSingleton<ComunioAdminTools.Core.Authentication.ITokenStore, Authentication.SecureTokenStore>();
             builder.Services.AddComunioCore();
 
 #if DEBUG

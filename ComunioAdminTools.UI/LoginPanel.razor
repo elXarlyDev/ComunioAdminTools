@@ -1,0 +1,68 @@
+@using ComunioAdminTools.Core.Authentication
+@inject AuthService Auth
+@implements IDisposable
+
+@if (signedIn)
+{
+    <p>Sesión de Comunio iniciada.</p>
+    <button @onclick="LogoutAsync" disabled="@busy">Cerrar sesión</button>
+}
+else
+{
+    <h1>Iniciar sesión en Comunio</h1>
+    <form @onsubmit="LoginAsync" @onsubmit:preventDefault>
+        <p><label>Usuario <input @bind="username" autocomplete="username" required disabled="@busy" /></label></p>
+        <p><label>Contraseña <input type="password" @bind="password" autocomplete="current-password" required disabled="@busy" /></label></p>
+        <button type="submit" disabled="@busy">@(busy ? "Conectando…" : "Iniciar sesión")</button>
+    </form>
+}
+@if (error is not null)
+{
+    <p role="alert">@error</p>
+}
+
+@code {
+    private string username = "";
+    private string password = "";
+    private string? error;
+    private bool signedIn;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Auth.SessionChanged += OnSessionChanged;
+        try { signedIn = await Auth.HasSessionAsync(); }
+        catch { error = "No se ha podido recuperar la sesión guardada."; }
+    }
+
+    private async Task LoginAsync()
+    {
+        busy = true;
+        error = null;
+        try
+        {
+            await Auth.LoginAsync(username, password);
+            signedIn = true;
+        }
+        catch (AuthenticationRequiredException ex) { error = ex.Message; }
+        catch { error = "No se ha podido iniciar sesión. Comprueba los datos y la conexión."; }
+        finally { password = ""; busy = false; }
+    }
+
+    private async Task LogoutAsync()
+    {
+        busy = true;
+        error = null;
+        try { await Auth.LogoutAsync(); signedIn = false; }
+        catch { error = "No se ha podido cerrar la sesión."; }
+        finally { busy = false; }
+    }
+
+    private void OnSessionChanged() => _ = InvokeAsync(async () =>
+    {
+        signedIn = await Auth.HasSessionAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose() => Auth.SessionChanged -= OnSessionChanged;
+}

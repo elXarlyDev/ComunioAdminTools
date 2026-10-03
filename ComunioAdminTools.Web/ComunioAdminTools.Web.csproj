@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ComunioAdminTools.Core\ComunioAdminTools.Core.csproj" />
+    <ProjectReference Include="..\ComunioAdminTools.UI\ComunioAdminTools.UI.csproj" />
   </ItemGroup>
 
 </Project>

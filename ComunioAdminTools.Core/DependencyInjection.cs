@@ -1,12 +1,29 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using ComunioAdminTools.Core.Authentication;
 
 namespace ComunioAdminTools.Core;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddComunioCore(this IServiceCollection services)
+    public static IServiceCollection AddComunioCore(this IServiceCollection services, Action<ComunioAuthOptions>? configure = null)
     {
-        // TODO: Añadir dependencias conforme se vayan creando
+        var options = new ComunioAuthOptions();
+        configure?.Invoke(options);
+        services.AddSingleton(options);
+        services.TryAddSingleton<ITokenStore, MemoryTokenStore>();
+        services.AddSingleton<AuthService>();
+        services.AddSingleton<IAccessTokenProvider>(sp => sp.GetRequiredService<AuthService>());
+        services.AddTransient<ComunioAuthHandler>();
+        services.AddHttpClient("ComunioAuth", client =>
+        {
+            client.BaseAddress = new Uri("https://api.comunio.es/");
+        });
+        services.AddHttpClient("Comunio", client =>
+        {
+            client.BaseAddress = new Uri("https://api.comunio.es/");
+        }).AddHttpMessageHandler<ComunioAuthHandler>();
+
         return services;
     }
 }
