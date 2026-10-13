@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ComunioAdminTools.Core.Authentication;
+using ComunioAdminTools.Core.Services;
 
 namespace ComunioAdminTools.Core;
 
@@ -12,9 +13,13 @@ public static class DependencyInjection
         configure?.Invoke(options);
         services.AddSingleton(options);
         services.TryAddSingleton<ITokenStore, MemoryTokenStore>();
+        services.AddSingleton<ISessionManager, SessionManager>();
         services.AddSingleton<AuthService>();
         services.AddSingleton<IAccessTokenProvider>(sp => sp.GetRequiredService<AuthService>());
         services.AddTransient<ComunioAuthHandler>();
+        services.AddTransient<CashService>();
+        services.AddTransient<PointsService>();
+        services.AddTransient<SquadService>();
         services.AddHttpClient("ComunioAuth", client =>
         {
             client.BaseAddress = new Uri("https://api.comunio.es/");

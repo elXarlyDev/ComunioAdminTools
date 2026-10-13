@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 namespace ComunioAdminTools.Core.Authentication;
 
 public sealed class AuthService(
-    IHttpClientFactory factory, ITokenStore store, ComunioAuthOptions options) : IAccessTokenProvider
+    IHttpClientFactory factory, ITokenStore store, ComunioAuthOptions options, ISessionManager sessionManager) : IAccessTokenProvider
 {
     private readonly SemaphoreSlim gate = new(1, 1);
     private TokenSession? session;
@@ -26,9 +26,13 @@ public sealed class AuthService(
             };
             var result = await SendTokenRequestAsync(request, cancellationToken);
             await SaveAsync(CreateSession(result, null), cancellationToken);
+            sessionManager.Clear();
         }
         finally { gate.Release(); }
-        SessionChanged?.Invoke();
+        // Load through the authenticated client after releasing the token lock.
+        // The handler can now retrieve the access token without deadlocking.
+        try { await sessionManager.GetSessionAsync(cancellationToken); }
+        finally { SessionChanged?.Invoke(); }
     }
 
     public async Task<bool> HasSessionAsync(CancellationToken cancellationToken = default)
@@ -103,6 +107,7 @@ public sealed class AuthService(
         await store.WriteAsync(value, ct);
         session = value;
         loaded = true;
+        if (value is null) sessionManager.Clear();
     }
 
     private async Task<TokenResponse> SendTokenRequestAsync(HttpRequestMessage request, CancellationToken ct)
