@@ -40,10 +40,10 @@ idempotencia ni deduplicación que no esté soportada por la API.
 `ComunioAdminTools.UI.AdminPage` gestiona la sesión, carga, errores y resultados y
 conecta los callbacks del componente visual `MainPage` con estos servicios.
 Web y Mobile muestran el mismo componente. Los modelos necesarios se han copiado
-a `Core/Models`; el proyecto obsoleto permanece sin cambios.
+a `Core/Models`; el proyecto obsoleto se ha eliminado.
 
 Verificación con transportes simulados, sin operaciones reales en Comunio:
 
 ```sh
-dotnet run --project Tests/ServiceChecks/ServiceChecks.csproj
+dotnet run --project Tests/MigrationChecks/MigrationChecks.csproj
 ```

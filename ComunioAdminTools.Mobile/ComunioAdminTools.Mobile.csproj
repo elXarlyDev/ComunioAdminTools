@@ -32,7 +32,8 @@
         <ApplicationTitle>ComunioAdminTools</ApplicationTitle>
 
         <!-- App Identifier -->
-        <ApplicationId>comunio_admin_tools.comunio_admin_tools</ApplicationId>
+        <ApplicationId>com.companyname.comunioadmintools</ApplicationId>
+        <ApplicationId Condition="'$(TargetFramework)' == 'net10.0-android'">comunio_admin_tools.comunio_admin_tools</ApplicationId>
 
         <!-- Versions -->
         <ApplicationDisplayVersion>1.2</ApplicationDisplayVersion>
@@ -50,10 +51,10 @@
 
     <ItemGroup>
         <!-- App Icon -->
-        <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
+        <MauiIcon Include="Resources\AppIcon\appicon.png" />
 
         <!-- Splash Screen -->
-        <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
+        <MauiSplashScreen Include="Resources\Splash\comunio_splash.png" Color="#0B4D2C" BaseSize="128,128" Resize="true" />
 
         <!-- Images -->
         <MauiImage Include="Resources\Images\*" />

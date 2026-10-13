@@ -5,6 +5,8 @@
 @inject CashService Cash
 @inject PointsService Points
 @inject SquadService Squads
+@inject ResultsDialogController Dialog
+@implements IDisposable
 
 <MainPage @bind-Username="username" @bind-Password="password" HasSession="hasSession"
           IsLoading="busy" OnLogin="LoginAsync" OnLogout="LogoutAsync"
@@ -28,6 +30,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Dialog.CloseRequested += OnCloseRequested;
         try { hasSession = await Auth.HasSessionAsync(); }
         catch { ShowMessage("Error", "No se ha podido recuperar la sesión guardada."); }
     }
@@ -109,14 +112,30 @@
         rows = result;
         message = text;
         resultsOpen = true;
+        Dialog.Open();
     }
 
     private void ShowMessage(string title, string text) => ShowRows(title, "", [], text);
 
     private void CloseResults()
     {
+        Dialog.TryClose();
         resultsOpen = false;
         rows = [];
         message = null;
+    }
+
+    private void OnCloseRequested() => _ = InvokeAsync(() =>
+    {
+        resultsOpen = false;
+        rows = [];
+        message = null;
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        Dialog.CloseRequested -= OnCloseRequested;
+        Dialog.TryClose();
     }
 }

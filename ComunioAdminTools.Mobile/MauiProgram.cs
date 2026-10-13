@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace ComunioAdminTools.Mobile
 {
@@ -14,9 +14,11 @@ namespace ComunioAdminTools.Mobile
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                    fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
 
             builder.Services.AddMauiBlazorWebView();
+            builder.Services.AddSingleton<ComunioAdminTools.UI.ResultsDialogController>();
             builder.Services.AddSingleton<ComunioAdminTools.Core.Authentication.ITokenStore, Authentication.SecureTokenStore>();
             builder.Services.AddComunioCore();
 

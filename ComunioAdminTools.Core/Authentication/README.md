@@ -28,8 +28,8 @@ sesión. Los errores temporales de transporte o servidor mantienen los tokens.
 ## Plataformas
 
 `ComunioAdminTools.Mobile` registra `SecureTokenStore` antes de `AddComunioCore()`.
-El proyecto MAUI original `ComunioAdminTools.csproj` está obsoleto y no integra esta
-autenticación; el desarrollo continúa en Web, UI, Core y Mobile.
+El proyecto MAUI original se ha retirado; el desarrollo continúa en Web, UI, Core
+y Mobile.
 WebAssembly usa `MemoryTokenStore`: conserva la sesión mientras la app está abierta;
 recargar la página requiere login. Para persistencia web protegida hay que añadir
 un backend que guarde los tokens por usuario y autentique el navegador mediante
@@ -38,6 +38,7 @@ No reutilices este registro singleton para usuarios de un servidor multiusuario.
 
 ## Verificación
 
-`dotnet run --project Tests/AuthenticationChecks/AuthenticationChecks.csproj`
-comprueba la renovación concurrente, restauración, rotación de tokens, restricción
-de dominio, errores temporales, invalidación y logout con transportes simulados.
+`dotnet run --project Tests/MigrationChecks/MigrationChecks.csproj`
+comprueba la restauración y renovación concurrente, persistencia del token renovado,
+logout y aislamiento entre instancias de cliente, además de las operaciones de
+negocio, con transportes simulados. No realiza peticiones reales a Comunio.

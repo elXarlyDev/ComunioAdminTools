@@ -2,14 +2,17 @@
 {
     public partial class App : Application
     {
-        public App()
+        private readonly ComunioAdminTools.UI.ResultsDialogController dialogs;
+
+        public App(ComunioAdminTools.UI.ResultsDialogController dialogs)
         {
+            this.dialogs = dialogs;
             InitializeComponent();
         }
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            return new Window(new MainPage()) { Title = "ComunioAdminTools.Mobile" };
+            return new Window(new MainPage(dialogs)) { Title = "ComunioAdminTools" };
         }
     }
 }
