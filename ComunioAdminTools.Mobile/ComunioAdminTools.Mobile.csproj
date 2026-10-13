@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
         <TargetFrameworks>net10.0-android</TargetFrameworks>
@@ -29,14 +29,14 @@
         <MauiXamlInflator>SourceGen</MauiXamlInflator>
 
         <!-- Display name -->
-        <ApplicationTitle>ComunioAdminTools.Mobile</ApplicationTitle>
+        <ApplicationTitle>ComunioAdminTools</ApplicationTitle>
 
         <!-- App Identifier -->
-        <ApplicationId>com.companyname.comunioadmintools.mobile</ApplicationId>
+        <ApplicationId>comunio_admin_tools.comunio_admin_tools</ApplicationId>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-        <ApplicationVersion>1</ApplicationVersion>
+        <ApplicationDisplayVersion>1.2</ApplicationDisplayVersion>
+        <ApplicationVersion>3</ApplicationVersion>
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
         <WindowsPackageType>None</WindowsPackageType>
@@ -77,4 +77,24 @@
         <ProjectReference Include="..\ComunioAdminTools.UI\ComunioAdminTools.UI.csproj" />
     </ItemGroup>
 
+	<!-- Work around the .NET 10.0.401 task-host failure during Android Release trimming.
+	     Run the same ILLink tasks inside the .NET MSBuild process.
+	     Skip registration during restore evaluations where ILLinkTasksAssembly is not defined. -->
+	<UsingTask TaskName="ComputeManagedAssemblies"
+		AssemblyFile="$(ILLinkTasksAssembly)"
+		Override="true"
+		Condition="'$(ILLinkTasksAssembly)' != '' and '$(MSBuildRuntimeType)' == 'Core' and '$(NETCoreSdkVersion)' == '10.0.401' and '$(TargetFramework)' == 'net10.0-android' and '$(Configuration)' == 'Release'" />
+	<UsingTask TaskName="ILLink"
+		AssemblyFile="$(ILLinkTasksAssembly)"
+		Override="true"
+		Condition="'$(ILLinkTasksAssembly)' != '' and '$(MSBuildRuntimeType)' == 'Core' and '$(NETCoreSdkVersion)' == '10.0.401' and '$(TargetFramework)' == 'net10.0-android' and '$(Configuration)' == 'Release'" />
+
+    <!-- Optional local signing configuration. Passwords are supplied by the APK script. -->
+    <Import Project="Platforms\Android\signing\signing.props" Condition="Exists('Platforms\Android\signing\signing.props')" />
+
+    <PropertyGroup Condition="'$(Configuration)' == 'Release' and '$(TargetFramework)' == 'net10.0-android'">
+        <AndroidPackageFormat>apk</AndroidPackageFormat>
+        <AndroidPackageFormatAssembliesForMultipleAbis>false</AndroidPackageFormatAssembliesForMultipleAbis>
+        <AndroidLinkMode>SdkOnly</AndroidLinkMode>
+    </PropertyGroup>
 </Project>

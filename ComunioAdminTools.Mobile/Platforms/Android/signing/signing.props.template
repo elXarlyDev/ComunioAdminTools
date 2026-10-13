@@ -1,0 +1,12 @@
+<!-- Copia este archivo a signing.props y completa los valores. NO lo subas al repositorio. -->
+<Project>
+  <PropertyGroup>
+	<!-- Ruta relativa al keystore generado -->
+	<AndroidSigningKeyStore>$(MSBuildProjectDirectory)\Platforms\Android\signing\comunio.keystore</AndroidSigningKeyStore>
+	<AndroidKeyStore>true</AndroidKeyStore>
+	<AndroidSigningKeyAlias>comunioalias</AndroidSigningKeyAlias>
+	<!-- Escribe aquí las contraseñas (se recomienda no subir este fichero) -->
+	<AndroidSigningStorePass>env:COMUNIO_KEYSTORE_PASSWORD</AndroidSigningStorePass>
+	<AndroidSigningKeyPass>env:COMUNIO_KEY_ALIAS_PASSWORD</AndroidSigningKeyPass>
+  </PropertyGroup>
+</Project>
