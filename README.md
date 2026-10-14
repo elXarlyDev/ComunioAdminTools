@@ -85,6 +85,14 @@ y dependen de que su API permita CORS para el origen publicado; Pages no
 proporciona un proxy backend. La sesión continúa aislada por cliente y los
 tokens permanecen en memoria.
 
+Al añadir la PWA a la pantalla de inicio, su nombre es `Comunio Tools`.
+Los iconos Web de 192 y 512 píxeles y `apple-touch-icon.png` de 180 píxeles
+proceden del mismo `ComunioAdminTools.Mobile/Resources/AppIcon/appicon.png`
+que usa la APK Android. Si cambia ese recurso, actualiza también los tres PNG
+de `ComunioAdminTools.Web/wwwroot`. En iPhone, abre la web desplegada en Safari
+y utiliza **Compartir → Añadir a pantalla de inicio**. Si tenías un acceso con
+el icono o nombre anterior, elimínalo y vuelve a añadirlo tras el despliegue.
+
 Referencias: [workflows oficiales de Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
 y [despliegue de Blazor WebAssembly](https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-10.0).
 

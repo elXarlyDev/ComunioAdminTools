@@ -1,6 +1,6 @@
 {
-  "name": "ComunioAdminTools.Web",
-  "short_name": "ComunioAdminTools.Web",
+  "name": "Comunio Tools",
+  "short_name": "Comunio Tools",
   "id": "./",
   "start_url": "./",
   "display": "standalone",
