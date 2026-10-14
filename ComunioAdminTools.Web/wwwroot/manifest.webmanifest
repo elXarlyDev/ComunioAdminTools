@@ -1,11 +1,11 @@
 {
-  "name": "Comunio Tools",
-  "short_name": "Comunio Tools",
+  "name": "Comunio Admin Tools",
+  "short_name": "Comunio Admin Tools",
   "id": "./",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#03173d",
+  "background_color": "#0b4d2c",
+  "theme_color": "#0b4d2c",
   "prefer_related_applications": false,
   "icons": [
     {

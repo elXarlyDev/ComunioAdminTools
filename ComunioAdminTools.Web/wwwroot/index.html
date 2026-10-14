@@ -4,9 +4,10 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Comunio Tools</title>
-    <meta name="application-name" content="Comunio Tools" />
-    <meta name="apple-mobile-web-app-title" content="Comunio Tools" />
+    <title>Comunio Admin Tools</title>
+    <meta name="application-name" content="Comunio Admin Tools" />
+    <meta name="apple-mobile-web-app-title" content="Comunio Admin Tools" />
+    <meta name="theme-color" content="#0b4d2c" />
     <base href="/" />
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="css/app.css" />
@@ -19,11 +20,9 @@
 
 <body>
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+        <div class="app-splash" role="status" aria-label="Cargando Comunio Admin Tools">
+            <img class="app-splash-logo" src="icon-512.png" alt="Comunio Admin Tools" width="512" height="512" fetchpriority="high" />
+        </div>
     </div>
 
     <div id="blazor-error-ui">

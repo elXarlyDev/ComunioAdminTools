@@ -85,7 +85,7 @@ y dependen de que su API permita CORS para el origen publicado; Pages no
 proporciona un proxy backend. La sesión continúa aislada por cliente y los
 tokens permanecen en memoria.
 
-Al añadir la PWA a la pantalla de inicio, su nombre es `Comunio Tools`.
+Al añadir la PWA a la pantalla de inicio, su nombre es `Comunio Admin Tools`.
 Los iconos Web de 192 y 512 píxeles y `apple-touch-icon.png` de 180 píxeles
 proceden del mismo `ComunioAdminTools.Mobile/Resources/AppIcon/appicon.png`
 que usa la APK Android. Si cambia ese recurso, actualiza también los tres PNG
