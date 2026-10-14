@@ -1,3 +1,5 @@
+@inherits LocalizedComponentBase
+
 @if (Message is not null)
 {
     <p role="status">@Message</p>
@@ -5,7 +7,7 @@
 @if (Rows.Count > 0)
 {
     <table>
-        <thead><tr><th scope="col">Usuari</th><th scope="col">@ValueHeading</th></tr></thead>
+        <thead><tr><th scope="col">@Text[TextKey.Username]</th><th scope="col">@ValueHeading</th></tr></thead>
         <tbody>
             @foreach (var row in Rows)
             {
@@ -16,7 +18,7 @@
 }
 else if (Message is null)
 {
-    <p>No hi ha resultats.</p>
+    <p>@Text[TextKey.NoResults]</p>
 }
 
 @code {

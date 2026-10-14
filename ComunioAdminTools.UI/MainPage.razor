@@ -1,67 +1,69 @@
+@inherits LocalizedComponentBase
+
 <main class="admin-page" aria-busy="@(IsLoading ? "true" : "false")">
     <div class="main-content" inert="@(IsLoading || ResultsContent is not null)">
         <header class="brand">
             <h1>comunio</h1>
-            <p>Admin Tools</p>
+            <p>@Text[TextKey.AdminTools]</p>
         </header>
 
         @if (!HasSession)
         {
         <label class="credential">
-            <span>Usuari</span>
-            <input type="text" placeholder="Introdueix l'usuari" autocomplete="username"
+            <span>@Text[TextKey.Username]</span>
+            <input type="text" placeholder="@Text[TextKey.UsernamePlaceholder]" autocomplete="username"
                    @bind:get="Username" @bind:set="SetUsernameAsync" />
         </label>
 
         <label class="credential">
-            <span>Contrasenya</span>
-            <input type="password" placeholder="Introdueix la contrasenya" autocomplete="current-password"
+            <span>@Text[TextKey.Password]</span>
+            <input type="password" placeholder="@Text[TextKey.PasswordPlaceholder]" autocomplete="current-password"
                    @bind:get="Password" @bind:set="SetPasswordAsync" />
         </label>
 
         <button type="button" class="action-button points" disabled="@(IsLoading || !OnLogin.HasDelegate)"
-                @onclick="OnLogin">Iniciar sessió</button>
+                @onclick="OnLogin">@Text[TextKey.SignIn]</button>
         }
         else
         {
-            <p role="status">Sessió de Comunio iniciada.</p>
+            <p role="status">@Text[TextKey.SignedIn]</p>
             <button type="button" class="action-button query" disabled="@(IsLoading || !OnLogout.HasDelegate)"
-                    @onclick="OnLogout">Tancar sessió</button>
+                    @onclick="OnLogout">@Text[TextKey.SignOut]</button>
         }
 
-        <section class="actions" aria-label="Eines d'administració">
-            <div class="tabs" aria-label="Seccions">
+        <section class="actions" aria-label="@Text[TextKey.AdminTools]">
+            <div class="tabs" aria-label="@Text[TextKey.Sections]">
                 <button type="button" class="@(dinersSelected ? "selected" : null)"
                         aria-pressed="@(dinersSelected ? "true" : "false")"
-                        @onclick="() => dinersSelected = true">Diners</button>
+                        @onclick="() => dinersSelected = true">@Text[TextKey.Money]</button>
                 <button type="button" class="@(!dinersSelected ? "selected" : null)"
                         aria-pressed="@(!dinersSelected ? "true" : "false")"
-                        @onclick="() => dinersSelected = false">Consultes</button>
+                        @onclick="() => dinersSelected = false">@Text[TextKey.Queries]</button>
             </div>
 
             <div class="action-panel" hidden="@(!dinersSelected)">
                 <button type="button" class="action-button points"
                         disabled="@(IsLoading || !OnSetPointsCash.HasDelegate)" @onclick="OnSetPointsCash">
-                    Posar diners dels punts
+                    @Text[TextKey.PayPoints]
                 </button>
                 <button type="button" class="action-button revert"
                         disabled="@(IsLoading || !OnRevertPointsCash.HasDelegate)" @onclick="OnRevertPointsCash">
-                    Revertir diners dels punts
+                    @Text[TextKey.RevertPoints]
                 </button>
                 <button type="button" class="action-button bonus"
                         disabled="@(IsLoading || !OnAddFiveMillionCash.HasDelegate)" @onclick="OnAddFiveMillionCash">
-                    Abonar paró de seleccions
+                    @Text[TextKey.PayBreak]
                 </button>
             </div>
 
             <div class="action-panel" hidden="@dinersSelected">
                 <button type="button" class="action-button query"
                         disabled="@(IsLoading || !OnShowTeamsLastPoints.HasDelegate)" @onclick="OnShowTeamsLastPoints">
-                    Consultar punts última jornada
+                    @Text[TextKey.QueryPoints]
                 </button>
                 <button type="button" class="action-button query"
                         disabled="@(IsLoading || !OnCheckSquadExcess.HasDelegate)" @onclick="OnCheckSquadExcess">
-                    Comprovar excés de plantilla
+                    @Text[TextKey.QuerySquads]
                 </button>
             </div>
         </section>
@@ -72,7 +74,7 @@
         <div class="overlay">
             <div class="loading-card" role="status" aria-live="polite">
                 <span class="spinner" aria-hidden="true"></span>
-                <span>Cargando...</span>
+                <span>@Text[TextKey.Loading]</span>
             </div>
         </div>
     }
@@ -80,11 +82,11 @@
     @if (ResultsContent is not null)
     {
         <div class="overlay">
-            <section class="results-card" role="dialog" aria-label="@ResultsTitle" aria-modal="true">
-                <h2>@ResultsTitle</h2>
+            <section class="results-card" role="dialog" aria-label="@(ResultsTitle ?? Text[TextKey.Results])" aria-modal="true">
+                <h2>@(ResultsTitle ?? Text[TextKey.Results])</h2>
                 <div class="results-body">@ResultsContent</div>
                 <button type="button" class="action-button points" disabled="@(!OnCloseResults.HasDelegate)"
-                        @onclick="OnCloseResults">Cerrar</button>
+                        @onclick="OnCloseResults">@Text[TextKey.Close]</button>
             </section>
         </div>
     }
@@ -107,7 +109,7 @@
     [Parameter] public EventCallback OnAddFiveMillionCash { get; set; }
     [Parameter] public EventCallback OnShowTeamsLastPoints { get; set; }
     [Parameter] public EventCallback OnCheckSquadExcess { get; set; }
-    [Parameter] public string ResultsTitle { get; set; } = "Resultats";
+    [Parameter] public string? ResultsTitle { get; set; }
     [Parameter] public RenderFragment? ResultsContent { get; set; }
     [Parameter] public EventCallback OnCloseResults { get; set; }
 

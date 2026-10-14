@@ -1,4 +1,4 @@
-﻿namespace ComunioAdminTools.Mobile
+namespace ComunioAdminTools.Mobile
 {
     public partial class App : Application
     {

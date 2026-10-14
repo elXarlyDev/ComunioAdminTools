@@ -96,6 +96,13 @@ el icono o nombre anterior, elimínalo y vuelve a añadirlo tras el despliegue.
 Referencias: [workflows oficiales de Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
 y [despliegue de Blazor WebAssembly](https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-10.0).
 
+## Idiomas
+
+La interfaz incluye un selector de español y valenciano. Los textos de Web,
+Mobile y los errores de Core comparten los recursos de
+`ComunioAdminTools.Core/Localization`. Consulta su README para añadir traducciones
+y ejecutar las comprobaciones de idiomas.
+
 ## Generar la APK
 
 ```powershell
@@ -114,6 +121,7 @@ dotnet build ComunioAdminTools.Web/ComunioAdminTools.Web.csproj
 dotnet build ComunioAdminTools.Mobile/ComunioAdminTools.Mobile.csproj -f net10.0-android -c Release
 dotnet build ComunioAdminTools.Mobile/ComunioAdminTools.Mobile.csproj -f net10.0-windows10.0.19041.0
 dotnet run --project Tests/MigrationChecks/MigrationChecks.csproj
+dotnet run --project Tests/LocalizationChecks/LocalizationChecks.csproj
 ```
 
 Las comprobaciones de migración usan una API simulada. Cubren las cinco operaciones,

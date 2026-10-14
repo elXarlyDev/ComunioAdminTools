@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es-ES">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>ComunioAdminTools.Mobile</title>
+    <title>Comunio Admin Tools</title>
     <base href="/" />
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="_content/ComunioAdminTools.UI/fonts.css" />
@@ -15,14 +15,15 @@
 
     <div class="status-bar-safe-area"></div>
 
-    <div id="app">Loading...</div>
+    <div id="app"><span role="status" data-localization="Loading"></span></div>
 
     <div id="blazor-error-ui" data-nosnippet>
-        An unhandled error has occurred.
-        <a href="." class="reload">Reload</a>
-        <span class="dismiss">🗙</span>
+        <span data-localization="UnhandledError"></span>
+        <a href="." class="reload" data-localization="Reload"></a>
+        <span class="dismiss" role="button" tabindex="0" data-localization-label="Close">🗙</span>
     </div>
 
+    <script type="module" src="_content/ComunioAdminTools.UI/localization.js"></script>
     <script src="_framework/blazor.webview.js" autostart="false"></script>
 
 </body>

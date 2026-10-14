@@ -58,7 +58,7 @@ body {
 }
 
     .blazor-error-boundary::after {
-        content: "An error has occurred."
+        content: var(--app-error-message, "");
     }
 
 code {

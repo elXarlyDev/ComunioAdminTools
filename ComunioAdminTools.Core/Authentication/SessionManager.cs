@@ -1,5 +1,7 @@
 using ComunioAdminTools.Core.Models;
 using Newtonsoft.Json;
+using ComunioAdminTools.Core.Localization;
+using ComunioAdminTools.Core.Services;
 
 namespace ComunioAdminTools.Core.Authentication;
 
@@ -10,7 +12,7 @@ public interface ISessionManager
 }
 
 // One instance per MAUI/WebAssembly client, never a shared server-user session.
-public sealed class SessionManager(IHttpClientFactory factory) : ISessionManager
+public sealed class SessionManager(IHttpClientFactory factory, AppLocalization text) : ISessionManager
 {
     private readonly object sync = new();
     private Task<SessionDataModel>? pending;
@@ -46,12 +48,12 @@ public sealed class SessionManager(IHttpClientFactory factory) : ISessionManager
     private async Task<SessionDataModel> LoadAsync()
     {
         using var client = factory.CreateClient("Comunio");
-        using var response = await client.GetAsync(string.Empty);
-        response.EnsureSuccessStatusCode();
-        var result = JsonConvert.DeserializeObject<SessionDataModel>(await response.Content.ReadAsStringAsync())
-            ?? throw new InvalidOperationException("Respuesta de sesión vacía.");
+        using var request = new HttpRequestMessage(HttpMethod.Get, string.Empty);
+        using var response = await ComunioHttp.SendAsync(client, request, text);
+        ComunioHttp.EnsureSuccess(response, text);
+        var result = ComunioHttp.Deserialize<SessionDataModel>(await response.Content.ReadAsStringAsync(), text, TextKey.EmptySessionResponse);
         if (result.User is null || result.Community is null || string.IsNullOrWhiteSpace(result.Community.Id))
-            throw new InvalidOperationException("Respuesta de sesión incompleta.");
+            throw new LocalizedInvalidOperationException(text, TextKey.IncompleteSessionResponse);
         return result;
     }
 }

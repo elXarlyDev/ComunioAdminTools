@@ -1,10 +1,11 @@
 using ComunioAdminTools.Core.Models;
+using ComunioAdminTools.Core.Localization;
 
 namespace ComunioAdminTools.Core.Services;
 
 using ComunioAdminTools.Core.Authentication;
 
-public sealed class SquadService(IHttpClientFactory factory, ISessionManager sessionManager) : CommunityService(factory, sessionManager)
+public sealed class SquadService(IHttpClientFactory factory, ISessionManager sessionManager, AppLocalization text) : CommunityService(factory, sessionManager, text)
 {
     public async Task<IReadOnlyList<ExcesoPlantillaModel>> GetSquadExcessAsync()
     {

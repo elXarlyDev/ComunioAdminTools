@@ -25,7 +25,14 @@ public interface IAccessTokenProvider
     Task<string> GetValidAccessTokenAsync(CancellationToken cancellationToken = default);
 }
 
-public sealed class AuthenticationRequiredException(string message) : Exception(message);
+public sealed class AuthenticationRequiredException(
+    Localization.AppLocalization text, Localization.TextKey key)
+    : Exception(text[key]), Localization.ILocalizedError
+{
+    public Localization.TextKey ResourceKey => key;
+    public object?[] Arguments => [];
+    public override string Message => text[key];
+}
 
 public sealed class ComunioAuthOptions
 {

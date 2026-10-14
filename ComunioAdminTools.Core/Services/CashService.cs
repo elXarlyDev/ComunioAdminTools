@@ -1,4 +1,5 @@
 using ComunioAdminTools.Core.Models;
+using ComunioAdminTools.Core.Localization;
 
 namespace ComunioAdminTools.Core.Services;
 
@@ -11,7 +12,7 @@ public interface ICashService
     Task<IReadOnlyList<DineroJornadaModel>> PayInternationalBreakAsync();
 }
 
-public sealed class CashService(IHttpClientFactory factory, ISessionManager sessionManager) : CommunityService(factory, sessionManager), ICashService
+public sealed class CashService(IHttpClientFactory factory, ISessionManager sessionManager, AppLocalization localization) : CommunityService(factory, sessionManager, localization), ICashService
 {
     public Task<IReadOnlyList<DineroJornadaModel>> PayRoundPointsAsync() => ManageRoundPointsAsync(false);
     public Task<IReadOnlyList<DineroJornadaModel>> RevertRoundPointsAsync() => ManageRoundPointsAsync(true);
@@ -28,7 +29,7 @@ public sealed class CashService(IHttpClientFactory factory, ISessionManager sess
             }
             catch (Exception ex)
             {
-                throw new CashOperationException(team.TeamInfo.User.Name, results.ToArray(), ex);
+                throw new CashOperationException(text, team.TeamInfo.User.Name, results.ToArray(), ex);
             }
             results.Add(new() { UserName = team.TeamInfo.User.Name, Amount = 5_000_000 });
         }
@@ -58,7 +59,7 @@ public sealed class CashService(IHttpClientFactory factory, ISessionManager sess
             catch (Exception ex)
             {
                 if (total != 0) results.Add(new() { UserName = team.TeamInfo.User.Name, Amount = total });
-                throw new CashOperationException(team.TeamInfo.User.Name, results.ToArray(), ex);
+                throw new CashOperationException(text, team.TeamInfo.User.Name, results.ToArray(), ex);
             }
             results.Add(new() { UserName = team.TeamInfo.User.Name, Amount = total });
         }
@@ -74,8 +75,11 @@ public sealed class CashService(IHttpClientFactory factory, ISessionManager sess
     }
 }
 
-public sealed class CashOperationException(string userName, IReadOnlyList<DineroJornadaModel> confirmedPayments, Exception innerException)
-    : Exception($"No se ha podido completar la operación para {userName}. Revisa los movimientos antes de repetirla: la última petición podría haberse aplicado.", innerException)
+public sealed class CashOperationException(AppLocalization text, string userName, IReadOnlyList<DineroJornadaModel> confirmedPayments, Exception innerException)
+    : Exception(text.Format(TextKey.CashOperationError, userName), innerException), ILocalizedError
 {
     public IReadOnlyList<DineroJornadaModel> ConfirmedPayments { get; } = confirmedPayments;
+    public TextKey ResourceKey => TextKey.CashOperationError;
+    public object?[] Arguments => [userName];
+    public override string Message => text.Format(ResourceKey, Arguments);
 }

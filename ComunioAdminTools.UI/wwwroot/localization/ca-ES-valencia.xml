@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="AppTitle" xml:space="preserve"><value>Comunio Admin Tools</value></data>
+  <data name="AdminTools" xml:space="preserve"><value>Ferramentes d’administració</value></data>
+  <data name="Language" xml:space="preserve"><value>Idioma</value></data>
+  <data name="Spanish" xml:space="preserve"><value>Español</value></data>
+  <data name="Valencian" xml:space="preserve"><value>Valencià</value></data>
+  <data name="Username" xml:space="preserve"><value>Usuari</value></data>
+  <data name="UsernamePlaceholder" xml:space="preserve"><value>Introduïx l’usuari</value></data>
+  <data name="Password" xml:space="preserve"><value>Contrasenya</value></data>
+  <data name="PasswordPlaceholder" xml:space="preserve"><value>Introduïx la contrasenya</value></data>
+  <data name="SignIn" xml:space="preserve"><value>Iniciar sessió</value></data>
+  <data name="SignInTitle" xml:space="preserve"><value>Iniciar sessió en Comunio</value></data>
+  <data name="SignOut" xml:space="preserve"><value>Tancar sessió</value></data>
+  <data name="SignedIn" xml:space="preserve"><value>Sessió de Comunio iniciada.</value></data>
+  <data name="Connecting" xml:space="preserve"><value>Connectant…</value></data>
+  <data name="Sections" xml:space="preserve"><value>Seccions</value></data>
+  <data name="Money" xml:space="preserve"><value>Diners</value></data>
+  <data name="Queries" xml:space="preserve"><value>Consultes</value></data>
+  <data name="PayPoints" xml:space="preserve"><value>Abonar diners pels punts</value></data>
+  <data name="RevertPoints" xml:space="preserve"><value>Revertir diners dels punts</value></data>
+  <data name="PayBreak" xml:space="preserve"><value>Abonar la parada de seleccions</value></data>
+  <data name="QueryPoints" xml:space="preserve"><value>Consultar punts de l’última jornada</value></data>
+  <data name="QuerySquads" xml:space="preserve"><value>Comprovar excés de plantilla</value></data>
+  <data name="Loading" xml:space="preserve"><value>Carregant…</value></data>
+  <data name="Close" xml:space="preserve"><value>Tancar</value></data>
+  <data name="Results" xml:space="preserve"><value>Resultats</value></data>
+  <data name="NoResults" xml:space="preserve"><value>No hi ha resultats.</value></data>
+  <data name="PaidMoney" xml:space="preserve"><value>Diners abonats</value></data>
+  <data name="RevertedMoney" xml:space="preserve"><value>Diners retirats</value></data>
+  <data name="PaymentCompleted" xml:space="preserve"><value>Abonament completat</value></data>
+  <data name="BreakPaymentCompleted" xml:space="preserve"><value>S’han abonat 5 milions a cada usuari per la parada de seleccions.</value></data>
+  <data name="LastRoundPoints" xml:space="preserve"><value>Punts de l’última jornada</value></data>
+  <data name="Points" xml:space="preserve"><value>Punts</value></data>
+  <data name="SquadExcess" xml:space="preserve"><value>Excés de plantilla</value></data>
+  <data name="Players" xml:space="preserve"><value>Jugadors</value></data>
+  <data name="Amount" xml:space="preserve"><value>Import</value></data>
+  <data name="IncompleteOperation" xml:space="preserve"><value>Operació incompleta</value></data>
+  <data name="Error" xml:space="preserve"><value>Error</value></data>
+  <data name="RestoreSessionError" xml:space="preserve"><value>No s’ha pogut recuperar la sessió guardada.</value></data>
+  <data name="CredentialsRequired" xml:space="preserve"><value>Introduïx l’usuari i la contrasenya per a iniciar sessió.</value></data>
+  <data name="OperationError" xml:space="preserve"><value>No s’ha pogut completar l’operació. Comprova la connexió i la sessió.</value></data>
+  <data name="SignInError" xml:space="preserve"><value>No s’ha pogut iniciar sessió. Comprova les dades i la connexió.</value></data>
+  <data name="SignOutError" xml:space="preserve"><value>No s’ha pogut tancar la sessió.</value></data>
+  <data name="SignInRequired" xml:space="preserve"><value>Inicia sessió per a continuar.</value></data>
+  <data name="SessionExpired" xml:space="preserve"><value>La sessió ha caducat. Torna a iniciar sessió.</value></data>
+  <data name="RefreshNotConfigured" xml:space="preserve"><value>No es pot renovar la sessió. Torna a iniciar sessió.</value></data>
+  <data name="AuthDestinationNotAllowed" xml:space="preserve"><value>La destinació d’autenticació no està autoritzada.</value></data>
+  <data name="TokenDestinationNotAllowed" xml:space="preserve"><value>La destinació no està autoritzada per al token de Comunio.</value></data>
+  <data name="CredentialsRejected" xml:space="preserve"><value>Comunio ha rebutjat les credencials de la sessió.</value></data>
+  <data name="RefreshTokenInvalid" xml:space="preserve"><value>La sessió ja no es pot renovar. Torna a iniciar sessió.</value></data>
+  <data name="EmptyAuthResponse" xml:space="preserve"><value>Comunio ha retornat una resposta d’autenticació buida.</value></data>
+  <data name="InvalidAuthResponse" xml:space="preserve"><value>La resposta d’autenticació no conté un token vàlid o la seua caducitat.</value></data>
+  <data name="EmptySessionResponse" xml:space="preserve"><value>Comunio ha retornat una resposta de sessió buida.</value></data>
+  <data name="IncompleteSessionResponse" xml:space="preserve"><value>La resposta de sessió està incompleta.</value></data>
+  <data name="EmptyJsonResponse" xml:space="preserve"><value>Comunio ha retornat una resposta buida.</value></data>
+  <data name="InvalidJsonResponse" xml:space="preserve"><value>No s’ha pogut interpretar la resposta de Comunio.</value></data>
+  <data name="NetworkError" xml:space="preserve"><value>No s’ha pogut connectar amb Comunio. Comprova la connexió.</value></data>
+  <data name="TimeoutError" xml:space="preserve"><value>Comunio ha tardat massa a respondre. Comprova els moviments abans de repetir una operació de diners.</value></data>
+  <data name="PermissionDenied" xml:space="preserve"><value>No tens permisos per a fer esta acció.</value></data>
+  <data name="ApiNotFound" xml:space="preserve"><value>No s’ha trobat el recurs sol·licitat en Comunio.</value></data>
+  <data name="TooManyRequests" xml:space="preserve"><value>Comunio ha rebut massa peticions. Espera un moment abans de continuar.</value></data>
+  <data name="ServiceUnavailable" xml:space="preserve"><value>Comunio no està disponible en este moment. Torna a intentar-ho més tard.</value></data>
+  <data name="HttpError" xml:space="preserve"><value>Comunio no ha pogut completar la petició (HTTP {0}).</value></data>
+  <data name="CashOperationError" xml:space="preserve"><value>No s’ha pogut completar l’operació per a {0}. Revisa els moviments abans de repetir-la: l’última petició podria haver-se aplicat.</value></data>
+  <data name="NotFoundTitle" xml:space="preserve"><value>Pàgina no trobada</value></data>
+  <data name="NotFoundDescription" xml:space="preserve"><value>El contingut que busques no existix.</value></data>
+  <data name="ReturnHome" xml:space="preserve"><value>Tornar a l’inici</value></data>
+  <data name="UnhandledError" xml:space="preserve"><value>S’ha produït un error inesperat.</value></data>
+  <data name="Reload" xml:space="preserve"><value>Tornar a carregar</value></data>
+  <data name="LibraryComponent" xml:space="preserve"><value>Este component pertany a la biblioteca {0}.</value></data>
+  <data name="ReadTokenStoreError" xml:space="preserve"><value>No s’ha pogut accedir a la sessió guardada.</value></data>
+  <data name="WriteTokenStoreError" xml:space="preserve"><value>No s’han pogut guardar els canvis de la sessió.</value></data>
+</root>

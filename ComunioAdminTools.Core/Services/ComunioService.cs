@@ -1,27 +1,29 @@
-﻿using ComunioAdminTools.Core.Authentication;
+using ComunioAdminTools.Core.Authentication;
 using Newtonsoft.Json;
+using ComunioAdminTools.Core.Localization;
 using System.Text;
 
 namespace ComunioAdminTools.Core.Services
 {
     public abstract class ComunioService
     {
-        protected static readonly string apiBaseUrl = "https://api.comunio.es";
         protected readonly HttpClient httpClient;
+        protected readonly AppLocalization text;
 
-        protected ComunioService(IHttpClientFactory factory)
+        protected ComunioService(IHttpClientFactory factory, AppLocalization text)
         {
             httpClient = factory.CreateClient("Comunio");
+            this.text = text;
         }
 
         public async Task<T> GetAsync<T>(string uri) where T : class
         {
-            using var httpResponse = await httpClient.GetAsync(uri);
-            await EnsureGetSuccess(httpResponse, uri);
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            using var httpResponse = await ComunioHttp.SendAsync(httpClient, request, text);
+            ComunioHttp.EnsureSuccess(httpResponse, text);
 
             var json = await httpResponse.Content.ReadAsStringAsync();
-            return JsonConvert.DeserializeObject<T>(json)
-                ?? throw new InvalidOperationException("Respuesta JSON vacía.");
+            return ComunioHttp.Deserialize<T>(json, text);
         }
 
         public async Task<TResponse> PostAsync<TRequest, TResponse>(string uri, TRequest body)
@@ -30,11 +32,11 @@ namespace ComunioAdminTools.Core.Services
             var json = JsonConvert.SerializeObject(body);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            using var httpResponse = await httpClient.PostAsync(uri, content);
-            await EnsurePostSuccess(httpResponse, uri, content);
+            using var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = content };
+            using var httpResponse = await ComunioHttp.SendAsync(httpClient, request, text);
+            ComunioHttp.EnsureSuccess(httpResponse, text);
 
-            return JsonConvert.DeserializeObject<TResponse>(await httpResponse.Content.ReadAsStringAsync())
-                ?? throw new InvalidOperationException("Respuesta JSON vacía.");
+            return ComunioHttp.Deserialize<TResponse>(await httpResponse.Content.ReadAsStringAsync(), text);
         }
 
         public async Task PostWithoutResponseAsync<T>(string uri, T body)
@@ -43,30 +45,10 @@ namespace ComunioAdminTools.Core.Services
             var json = JsonConvert.SerializeObject(body);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            using var httpResponse = await httpClient.PostAsync(uri, content);
-            await EnsurePostSuccess(httpResponse, uri, content);
+            using var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = content };
+            using var httpResponse = await ComunioHttp.SendAsync(httpClient, request, text);
+            ComunioHttp.EnsureSuccess(httpResponse, text);
         }
 
-        private static async Task EnsureGetSuccess(HttpResponseMessage httpResponse, string uri)
-        {
-            if (!httpResponse.IsSuccessStatusCode)
-            {
-                throw new HttpRequestException(
-                    $"HTTP {(int)httpResponse.StatusCode} {httpResponse.StatusCode}{Environment.NewLine}" +
-                    $"URL: {uri}{Environment.NewLine}" +
-                    $"RESPONSE: {await httpResponse.Content.ReadAsStringAsync()}");
-            }
-        }
-
-        private static async Task EnsurePostSuccess(HttpResponseMessage httpResponse, string uri, StringContent content)
-        {
-            if (!httpResponse.IsSuccessStatusCode)
-            {
-                throw new HttpRequestException(
-                    $"HTTP {(int)httpResponse.StatusCode} {httpResponse.StatusCode}{Environment.NewLine}" +
-                    $"URL: {uri}{Environment.NewLine}" +
-                    $"RESPONSE: {await httpResponse.Content.ReadAsStringAsync()}");
-            }
-        }
     }
 }

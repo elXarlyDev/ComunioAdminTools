@@ -1,6 +1,7 @@
 @using ComunioAdminTools.Core.Authentication
 @using ComunioAdminTools.Core.Models
 @using ComunioAdminTools.Core.Services
+@inherits LocalizedComponentBase
 @inject AuthService Auth
 @inject CashService Cash
 @inject PointsService Points
@@ -12,7 +13,7 @@
           IsLoading="busy" OnLogin="LoginAsync" OnLogout="LogoutAsync"
           OnSetPointsCash="PayRoundPointsAsync" OnRevertPointsCash="RevertRoundPointsAsync"
           OnAddFiveMillionCash="PayInternationalBreakAsync" OnShowTeamsLastPoints="ShowPointsAsync"
-          OnCheckSquadExcess="ShowSquadExcessAsync" ResultsTitle="@resultTitle"
+          OnCheckSquadExcess="ShowSquadExcessAsync" ResultsTitle="@Text[titleKey]"
           ResultsContent="@(resultsOpen ? ResultContent : null)" OnCloseResults="CloseResults" />
 
 @code {
@@ -21,18 +22,25 @@
     private bool hasSession;
     private bool busy;
     private bool resultsOpen;
-    private string resultTitle = "";
-    private string? message;
-    private string valueHeading = "";
-    private IReadOnlyList<(string Name, string Value)> rows = [];
+    private bool cashResults;
+    private TextKey titleKey = TextKey.Results;
+    private TextKey headingKey = TextKey.Amount;
+    private TextKey? messageKey;
+    private Exception? error;
+    private IReadOnlyList<(string Name, int Value)> values = [];
 
-    private RenderFragment ResultContent => @<ActionResults Rows="rows" ValueHeading="@valueHeading" Message="@message" />;
+    private string? Message => error is not null ? Text.ErrorMessage(error)
+        : messageKey is { } key ? Text[key] : null;
+    private IReadOnlyList<(string Name, string Value)> Rows => values.Select(row =>
+        (row.Name, cashResults ? row.Value.ToString("C0", Text.Culture)
+            : row.Value.ToString("N0", Text.Culture))).ToArray();
+    private RenderFragment ResultContent => @<ActionResults Rows="Rows" ValueHeading="@Text[headingKey]" Message="@Message" />;
 
     protected override async Task OnInitializedAsync()
     {
         Dialog.CloseRequested += OnCloseRequested;
         try { hasSession = await Auth.HasSessionAsync(); }
-        catch { ShowMessage("Error", "No se ha podido recuperar la sesión guardada."); }
+        catch { ShowMessage(TextKey.RestoreSessionError); }
     }
 
     private async Task EnsureSessionAsync()
@@ -59,25 +67,24 @@
     }, requiresSession: false);
 
     private Task PayRoundPointsAsync() => RunAsync(async () =>
-        ShowCash("Diners abonats", await Cash.PayRoundPointsAsync()));
+        ShowCash(TextKey.PaidMoney, await Cash.PayRoundPointsAsync()));
 
     private Task RevertRoundPointsAsync() => RunAsync(async () =>
-        ShowCash("Diners retirats", await Cash.RevertRoundPointsAsync()));
+        ShowCash(TextKey.RevertedMoney, await Cash.RevertRoundPointsAsync()));
 
     private Task PayInternationalBreakAsync() => RunAsync(async () =>
-        ShowCash("Abonament completat", await Cash.PayInternationalBreakAsync(),
-            "S'han abonat 5M a cada usuari debut al paró de seleccions"));
+        ShowCash(TextKey.PaymentCompleted, await Cash.PayInternationalBreakAsync(), TextKey.BreakPaymentCompleted));
 
     private Task ShowPointsAsync() => RunAsync(async () =>
     {
         var result = await Points.GetLastRoundPointsAsync();
-        ShowRows("Punts de la última jornada", "Punts", result.Select(x => (x.UserName, x.Points.ToString())).ToArray());
+        ShowRows(TextKey.LastRoundPoints, TextKey.Points, result.Select(x => (x.UserName, x.Points)).ToArray());
     });
 
     private Task ShowSquadExcessAsync() => RunAsync(async () =>
     {
         var result = await Squads.GetSquadExcessAsync();
-        ShowRows("Excés de plantilla", "Jugadors", result.Select(x => (x.UserName, x.PlayerCount.ToString())).ToArray());
+        ShowRows(TextKey.SquadExcess, TextKey.Players, result.Select(x => (x.UserName, x.PlayerCount)).ToArray());
     });
 
     private async Task RunAsync(Func<Task> action, bool requiresSession = true)
@@ -89,11 +96,16 @@
             if (requiresSession) await EnsureSessionAsync();
             await action();
         }
-        catch (CashOperationException ex) { ShowCash("Operació incompleta", ex.ConfirmedPayments, ex.Message); }
-        catch (AuthenticationRequiredException ex) { ShowMessage("Error", ex.Message); }
-        catch (UnauthorizedAccessException ex) { ShowMessage("Error", ex.Message); }
-        catch (ArgumentException) { ShowMessage("Error", "Introduce usuario y contraseña para iniciar sesión."); }
-        catch { ShowMessage("Error", "No se ha podido completar la operación. Comprueba la conexión y la sesión."); }
+        catch (CashOperationException ex)
+        {
+            ShowCash(TextKey.IncompleteOperation, ex.ConfirmedPayments);
+            error = ex;
+        }
+        catch (Exception ex)
+        {
+            ShowRows(TextKey.Error, TextKey.Amount, []);
+            error = ex;
+        }
         finally
         {
             busy = false;
@@ -102,34 +114,43 @@
         }
     }
 
-    private void ShowCash(string title, IReadOnlyList<DineroJornadaModel> result, string? text = null) =>
-        ShowRows(title, "Import", result.Select(x => (x.UserName, x.FormattedAmount)).ToArray(), text);
-
-    private void ShowRows(string title, string heading, IReadOnlyList<(string Name, string Value)> result, string? text = null)
+    private void ShowCash(TextKey title, IReadOnlyList<DineroJornadaModel> result, TextKey? message = null)
     {
-        resultTitle = title;
-        valueHeading = heading;
-        rows = result;
-        message = text;
+        ShowRows(title, TextKey.Amount, result.Select(x => (x.UserName, x.Amount)).ToArray(), message);
+        cashResults = true;
+    }
+
+    private void ShowRows(TextKey title, TextKey heading, IReadOnlyList<(string Name, int Value)> result, TextKey? message = null)
+    {
+        titleKey = title;
+        headingKey = heading;
+        values = result;
+        messageKey = message;
+        error = null;
+        cashResults = false;
         resultsOpen = true;
         Dialog.Open();
     }
 
-    private void ShowMessage(string title, string text) => ShowRows(title, "", [], text);
+    private void ShowMessage(TextKey message) => ShowRows(TextKey.Error, TextKey.Amount, [], message);
+
+    private void ClearResults()
+    {
+        resultsOpen = false;
+        values = [];
+        messageKey = null;
+        error = null;
+    }
 
     private void CloseResults()
     {
         Dialog.TryClose();
-        resultsOpen = false;
-        rows = [];
-        message = null;
+        ClearResults();
     }
 
     private void OnCloseRequested() => _ = InvokeAsync(() =>
     {
-        resultsOpen = false;
-        rows = [];
-        message = null;
+        ClearResults();
         StateHasChanged();
     });
 

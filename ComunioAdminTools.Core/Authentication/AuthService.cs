@@ -1,11 +1,14 @@
 using System.Net;
 using System.Text;
 using Newtonsoft.Json;
+using ComunioAdminTools.Core.Localization;
+using ComunioAdminTools.Core.Services;
 
 namespace ComunioAdminTools.Core.Authentication;
 
 public sealed class AuthService(
-    IHttpClientFactory factory, ITokenStore store, ComunioAuthOptions options, ISessionManager sessionManager) : IAccessTokenProvider
+    IHttpClientFactory factory, ITokenStore store, ComunioAuthOptions options, ISessionManager sessionManager,
+    AppLocalization text) : IAccessTokenProvider
 {
     private readonly SemaphoreSlim gate = new(1, 1);
     private TokenSession? session;
@@ -15,8 +18,8 @@ public sealed class AuthService(
 
     public async Task LoginAsync(string username, string password, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(username);
-        ArgumentException.ThrowIfNullOrWhiteSpace(password);
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            throw new AuthenticationRequiredException(text, TextKey.CredentialsRequired);
         await gate.WaitAsync(cancellationToken);
         try
         {
@@ -57,7 +60,7 @@ public sealed class AuthService(
         try
         {
             var current = await LoadAsync(cancellationToken)
-                ?? throw new AuthenticationRequiredException("Inicia sesión para continuar.");
+                ?? throw new AuthenticationRequiredException(text, TextKey.SignInRequired);
             if (current.ExpiresAtUtc > DateTimeOffset.UtcNow + options.RefreshMargin)
                 return current.AccessToken;
 
@@ -65,10 +68,10 @@ public sealed class AuthService(
             {
                 await SaveAsync(null, cancellationToken);
                 invalidated = true;
-                throw new AuthenticationRequiredException("La sesión ha caducado. Inicia sesión de nuevo.");
+                throw new AuthenticationRequiredException(text, TextKey.SessionExpired);
             }
             if (options.CreateRefreshRequest is null)
-                throw new AuthenticationRequiredException("Configura el contrato de renovación de Comunio o inicia sesión de nuevo.");
+                throw new AuthenticationRequiredException(text, TextKey.RefreshNotConfigured);
 
             using var request = options.CreateRefreshRequest(current.RefreshToken);
             try
@@ -115,27 +118,26 @@ public sealed class AuthService(
         using var client = factory.CreateClient("ComunioAuth");
         var uri = request.RequestUri;
         if (uri is null || (uri.IsAbsoluteUri && (uri.Scheme != "https" || uri.Host != "api.comunio.es")))
-            throw new InvalidOperationException("Destino de autenticación no autorizado.");
-        using var response = await client.SendAsync(request, ct);
+            throw new LocalizedInvalidOperationException(text, TextKey.AuthDestinationNotAllowed);
+        using var response = await ComunioHttp.SendAsync(client, request, text, ct);
         var body = await response.Content.ReadAsStringAsync(ct);
         if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
-            throw new AuthenticationRequiredException("Comunio ha rechazado las credenciales de la sesión.");
+            throw new AuthenticationRequiredException(text, TextKey.CredentialsRejected);
         if (response.StatusCode == HttpStatusCode.BadRequest)
         {
             // Only an explicit invalid_grant invalidates a stored refresh token.
-            var error = JsonConvert.DeserializeObject<TokenError>(body);
+            var error = ComunioHttp.Deserialize<TokenError>(body, text);
             if (error?.Error == "invalid_grant")
-                throw new AuthenticationRequiredException("El refresh token ya no es válido. Inicia sesión de nuevo.");
+                throw new AuthenticationRequiredException(text, TextKey.RefreshTokenInvalid);
         }
-        response.EnsureSuccessStatusCode();
-        return JsonConvert.DeserializeObject<TokenResponse>(body)
-            ?? throw new InvalidOperationException("Respuesta de autenticación vacía.");
+        ComunioHttp.EnsureSuccess(response, text);
+        return ComunioHttp.Deserialize<TokenResponse>(body, text, TextKey.EmptyAuthResponse);
     }
 
-    private static TokenSession CreateSession(TokenResponse result, string? previousRefreshToken)
+    private TokenSession CreateSession(TokenResponse result, string? previousRefreshToken)
     {
         if (string.IsNullOrWhiteSpace(result.AccessToken) || result.ExpiresIn <= 0)
-            throw new InvalidOperationException("Respuesta de autenticación sin token válido o caducidad.");
+            throw new LocalizedInvalidOperationException(text, TextKey.InvalidAuthResponse);
         return new(result.AccessToken,
             string.IsNullOrWhiteSpace(result.RefreshToken) ? previousRefreshToken : result.RefreshToken,
             DateTimeOffset.UtcNow.AddSeconds(result.ExpiresIn));
