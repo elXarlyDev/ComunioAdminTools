@@ -1,0 +1,53 @@
+name: Publish Web to GitHub Pages
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      - name: Publish Web and shared projects
+        run: dotnet publish ComunioAdminTools.Web/ComunioAdminTools.Web.csproj --configuration Release --output artifacts/web
+      - name: Prepare Pages paths and PWA integrity
+        shell: pwsh
+        env:
+          PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+        run: ./ComunioAdminTools.Web/Deployment/Prepare-GitHubPages.ps1 -PublishDirectory artifacts/web/wwwroot -BasePath $env:PAGES_BASE_PATH
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: artifacts/web/wwwroot
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -44,6 +44,50 @@ dotnet run --project ComunioAdminTools.Web --launch-profile http
 Abre http://localhost:5198. Las operaciones de dinero realizan movimientos reales;
 para una prueba funcional inicial utiliza las consultas.
 
+## Publicar Web en GitHub Pages
+
+El flujo `.github/workflows/deploy-web.yml`, ubicado en la raíz del repositorio,
+publica únicamente `ComunioAdminTools.Web` y sus referencias a Core y UI. No
+compila la solución completa ni requiere instalar las cargas de trabajo MAUI.
+
+1. Sube al repositorio la raíz de esta solución, incluidas las cuatro carpetas de
+   proyectos y `.github/workflows/deploy-web.yml`.
+2. En GitHub abre **Settings → Pages → Build and deployment → Source** y
+   selecciona **GitHub Actions**.
+3. Haz push a la rama predeterminada del repositorio. También puedes ejecutar
+   **Actions → Publish Web to GitHub Pages → Run workflow** sobre esa rama.
+4. Consulta la URL publicada en el entorno `github-pages` o en **Settings → Pages**.
+
+El flujo detecta la rama predeterminada, sin asumir `main`, `master` o `develop`.
+GitHub proporciona la ruta base: normalmente la URL será
+`https://<usuario>.github.io/<repositorio>/`. También admite sitios en la raíz y
+dominios personalizados configurados en Pages. No requiere un token personal:
+usa los permisos de Pages del `GITHUB_TOKEN` del workflow.
+
+La preparación ajusta el `<base>` del HTML publicado, genera `404.html` para
+las rutas de Blazor y `.nojekyll`, y recalcula la integridad y versión de la caché
+PWA. El service worker obtiene su ruta de su ámbito de registro y aísla las
+cachés por aplicación. Los archivos fuente siguen funcionando en localhost.
+Pages sirve `404.html` con estado HTTP 404 en accesos directos a rutas que no
+existen como archivo, aunque Blazor puede mostrar la página correspondiente.
+
+Para verificar el mismo artefacto localmente desde la raíz:
+
+```powershell
+dotnet publish ComunioAdminTools.Web/ComunioAdminTools.Web.csproj -c Release -o artifacts/web
+.\ComunioAdminTools.Web\Deployment\Prepare-GitHubPages.ps1 -PublishDirectory artifacts/web/wwwroot -BasePath /ComunioAdminTools/
+```
+
+El contenido que se publica es `artifacts/web/wwwroot`, no el código de la
+solución. Comprueba en la URL final el inicio de sesión, la carga de fuentes y
+la instalación de la PWA. Las llamadas a Comunio se ejecutan desde el navegador
+y dependen de que su API permita CORS para el origen publicado; Pages no
+proporciona un proxy backend. La sesión continúa aislada por cliente y los
+tokens permanecen en memoria.
+
+Referencias: [workflows oficiales de Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
+y [despliegue de Blazor WebAssembly](https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-10.0).
+
 ## Generar la APK
 
 ```powershell
