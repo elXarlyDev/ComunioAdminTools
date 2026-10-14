@@ -1,0 +1,18 @@
+.login-screen { width: 100%; padding-top: clamp(32px, 12vh, 100px); }
+.brand { text-align: center; margin-bottom: 20px; }
+.brand h1 { margin: 0; color: #0b4d2c; font-size: 40px; font-weight: 700; }
+.brand p { margin: 5px 0 0; color: #66736b; font-size: 18px; }
+form { display: flex; flex-direction: column; gap: 20px; }
+.credential { display: flex; flex-direction: column; gap: 6px; }
+.credential span { font-size: 15px; font-weight: 700; }
+.credential input {
+    box-sizing: border-box; width: 100%; min-height: 48px; border: 1px solid #d7ded9;
+    border-radius: 8px; padding: 8px 12px; background: white; color: #1e1e1e; font: inherit;
+}
+.credential input::placeholder { color: #9a9a9a; }
+.action-button {
+    min-height: 52px; border: 0; border-radius: 10px; padding: 10px 12px;
+    background: #0b4d2c; color: white; font: inherit; font-weight: 700; cursor: pointer;
+}
+.action-button:disabled { opacity: .65; cursor: default; }
+button:focus-visible, input:focus-visible { outline: 3px solid #0b4d2c; outline-offset: 3px; }

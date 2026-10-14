@@ -7,13 +7,7 @@
 <CascadingValue Value="Text.Culture">
     @if (ready)
     {
-        <div class="language-picker">
-            <label for="app-language">@Text[TextKey.Language]</label>
-            <select id="app-language" value="@Text.Language" @onchange="ChangeLanguageAsync">
-                <option value="@AppLocalization.SpanishCulture" lang="es">@Text[TextKey.Spanish]</option>
-                <option value="@AppLocalization.ValencianCulture" lang="ca-ES-valencia">@Text[TextKey.Valencian]</option>
-            </select>
-        </div>
+        <CascadingValue Name="ChangeLanguage" Value="@((Func<string, Task>)ChangeLanguageAsync)">
         <ErrorBoundary>
             <ChildContent>@ChildContent</ChildContent>
             <ErrorContent>
@@ -21,6 +15,7 @@
                 <a href="">@Text[TextKey.Reload]</a>
             </ErrorContent>
         </ErrorBoundary>
+        </CascadingValue>
     }
     else
     {
@@ -48,9 +43,9 @@
         StateHasChanged();
     }
 
-    private async Task ChangeLanguageAsync(ChangeEventArgs args)
+    private async Task ChangeLanguageAsync(string value)
     {
-        var language = AppLocalization.NormalizeCulture(args.Value?.ToString());
+        var language = AppLocalization.NormalizeCulture(value);
         Text.SetCulture(language);
         if (module is not null)
         {

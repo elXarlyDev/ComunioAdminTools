@@ -103,6 +103,13 @@ Mobile y los errores de Core comparten los recursos de
 `ComunioAdminTools.Core/Localization`. Consulta su README para añadir traducciones
 y ejecutar las comprobaciones de idiomas.
 
+La pantalla de login reúne usuario, contraseña, inicio de sesión y selector de
+idioma. El nombre `Comunio Admin Tools` permanece igual en ambos idiomas.
+Tras un login correcto, la vista cambia a las cinco operaciones; cerrar sesión
+desde la esquina superior derecha vuelve al login y borra las credenciales.
+Un acceso rechazado conserva la pantalla de login. Las pantallas se comparten
+entre Web y Mobile y el idioma elegido se conserva al cambiar de pantalla.
+
 ## Generar la APK
 
 ```powershell

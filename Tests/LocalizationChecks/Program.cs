@@ -86,9 +86,11 @@ await using (var renderer = new HtmlRenderer(services, services.GetRequiredServi
 {
     var root = await renderer.Dispatcher.InvokeAsync(() => renderer.RenderComponentAsync<TestHost>());
     var spanishHtml = await renderer.Dispatcher.InvokeAsync(() => WebUtility.HtmlDecode(root.ToHtmlString()));
+    Check(spanishHtml.Contains("Comunio</h1>") && spanishHtml.Contains("Admin Tools</p>") && !spanishHtml.Contains("class=\"actions\""), "Fixed brand and operations hidden before login.");
     Check(spanishHtml.Contains("Usuario") && spanishHtml.Contains("Cargando") && spanishHtml.Contains("No hay resultados"), "Spanish UI and results.");
     await renderer.Dispatcher.InvokeAsync(() => text.SetCulture(AppLocalization.ValencianCulture));
     var valencianHtml = await renderer.Dispatcher.InvokeAsync(() => WebUtility.HtmlDecode(root.ToHtmlString()));
+    Check(valencianHtml.Contains("Comunio</h1>") && valencianHtml.Contains("Admin Tools</p>"), "App name is unchanged in Valencian.");
     Check(valencianHtml.Contains("Usuari") && valencianHtml.Contains("Carregant") && valencianHtml.Contains("No hi ha resultats"), "Runtime switch updates an open results dialog.");
     Check(!valencianHtml.Contains("Herramientas de administración") && retainedError.Message == text[TextKey.SessionExpired], "No stale translated strings.");
 }

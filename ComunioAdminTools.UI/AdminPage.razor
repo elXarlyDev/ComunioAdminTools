@@ -3,6 +3,7 @@
 @using ComunioAdminTools.Core.Services
 @inherits LocalizedComponentBase
 @inject AuthService Auth
+@inject ISessionManager Session
 @inject CashService Cash
 @inject PointsService Points
 @inject SquadService Squads
@@ -10,6 +11,7 @@
 @implements IDisposable
 
 <MainPage @bind-Username="username" @bind-Password="password" HasSession="hasSession"
+          SessionUsername="@sessionUsername"
           IsLoading="busy" OnLogin="LoginAsync" OnLogout="LogoutAsync"
           OnSetPointsCash="PayRoundPointsAsync" OnRevertPointsCash="RevertRoundPointsAsync"
           OnAddFiveMillionCash="PayInternationalBreakAsync" OnShowTeamsLastPoints="ShowPointsAsync"
@@ -19,6 +21,7 @@
 @code {
     private string username = "";
     private string password = "";
+    private string sessionUsername = "";
     private bool hasSession;
     private bool busy;
     private bool resultsOpen;
@@ -39,23 +42,44 @@
     protected override async Task OnInitializedAsync()
     {
         Dialog.CloseRequested += OnCloseRequested;
-        try { hasSession = await Auth.HasSessionAsync(); }
+        Auth.SessionChanged += OnSessionChanged;
+        try { await UpdateSessionAsync(); }
         catch { ShowMessage(TextKey.RestoreSessionError); }
+    }
+
+    private async Task UpdateSessionAsync()
+    {
+        if (!await Auth.HasSessionAsync())
+        {
+            hasSession = false;
+            sessionUsername = "";
+            return;
+        }
+        var profile = await Session.GetSessionAsync();
+        sessionUsername = !string.IsNullOrWhiteSpace(profile.User.Name) ? profile.User.Name
+            : !string.IsNullOrWhiteSpace(profile.User.FirstName) ? profile.User.FirstName : username;
+        hasSession = true;
     }
 
     private async Task EnsureSessionAsync()
     {
         if (!await Auth.HasSessionAsync())
         {
-            try { await Auth.LoginAsync(username, password); }
-            finally { password = ""; }
+            hasSession = false;
+            throw new AuthenticationRequiredException(Text, TextKey.SignInRequired);
         }
         hasSession = true;
     }
 
     private Task LoginAsync() => RunAsync(async () =>
     {
-        try { await Auth.LoginAsync(username, password); hasSession = true; }
+        try { await Auth.LoginAsync(username, password); await UpdateSessionAsync(); }
+        catch
+        {
+            await Auth.LogoutAsync();
+            hasSession = false;
+            throw;
+        }
         finally { password = ""; }
     }, requiresSession: false);
 
@@ -64,6 +88,8 @@
         await Auth.LogoutAsync();
         hasSession = false;
         password = "";
+        username = "";
+        sessionUsername = "";
     }, requiresSession: false);
 
     private Task PayRoundPointsAsync() => RunAsync(async () =>
@@ -108,9 +134,9 @@
         }
         finally
         {
+            try { await UpdateSessionAsync(); }
+            catch { hasSession = false; sessionUsername = ""; }
             busy = false;
-            try { hasSession = await Auth.HasSessionAsync(); }
-            catch { hasSession = false; }
         }
     }
 
@@ -154,9 +180,18 @@
         StateHasChanged();
     });
 
+    private void OnSessionChanged() => _ = InvokeAsync(async () =>
+    {
+        if (busy) return;
+        try { await UpdateSessionAsync(); }
+        catch { hasSession = false; sessionUsername = ""; }
+        StateHasChanged();
+    });
+
     public void Dispose()
     {
         Dialog.CloseRequested -= OnCloseRequested;
+        Auth.SessionChanged -= OnSessionChanged;
         Dialog.TryClose();
     }
 }

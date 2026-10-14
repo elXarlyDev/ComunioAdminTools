@@ -1,0 +1,16 @@
+@inherits LocalizedComponentBase
+
+<div class="language-picker">
+    <label for="app-language">@Text[TextKey.Language]</label>
+    <select id="app-language" value="@Text.Language" @onchange="ChangeAsync" disabled="@Disabled">
+        <option value="@AppLocalization.SpanishCulture" lang="es">@Text[TextKey.Spanish]</option>
+        <option value="@AppLocalization.ValencianCulture" lang="ca-ES-valencia">@Text[TextKey.Valencian]</option>
+    </select>
+</div>
+
+@code {
+    [Parameter] public bool Disabled { get; set; }
+    [CascadingParameter(Name = "ChangeLanguage")] public Func<string, Task>? ChangeLanguage { get; set; }
+
+    private Task ChangeAsync(ChangeEventArgs args) => ChangeLanguage?.Invoke(args.Value?.ToString() ?? "") ?? Task.CompletedTask;
+}

@@ -1,36 +1,23 @@
 @inherits LocalizedComponentBase
 
 <main class="admin-page" aria-busy="@(IsLoading ? "true" : "false")">
-    <div class="main-content" inert="@(IsLoading || ResultsContent is not null)">
-        <header class="brand">
-            <h1>comunio</h1>
-            <p>@Text[TextKey.AdminTools]</p>
+    @if (HasSession)
+    {
+        <header class="session-header" inert="@(IsLoading || ResultsContent is not null)">
+            <p class="session-user" title="@SessionUsername">@SessionUsername</p>
+            <button type="button" class="action-button sign-out" disabled="@(IsLoading || !OnLogout.HasDelegate)"
+                    @onclick="OnLogout">@Text[TextKey.SignOut]</button>
         </header>
-
+    }
+    <div class="main-content" inert="@(IsLoading || ResultsContent is not null)">
         @if (!HasSession)
         {
-        <label class="credential">
-            <span>@Text[TextKey.Username]</span>
-            <input type="text" placeholder="@Text[TextKey.UsernamePlaceholder]" autocomplete="username"
-                   @bind:get="Username" @bind:set="SetUsernameAsync" />
-        </label>
-
-        <label class="credential">
-            <span>@Text[TextKey.Password]</span>
-            <input type="password" placeholder="@Text[TextKey.PasswordPlaceholder]" autocomplete="current-password"
-                   @bind:get="Password" @bind:set="SetPasswordAsync" />
-        </label>
-
-        <button type="button" class="action-button points" disabled="@(IsLoading || !OnLogin.HasDelegate)"
-                @onclick="OnLogin">@Text[TextKey.SignIn]</button>
+            <LoginScreen Username="@Username" UsernameChanged="SetUsernameAsync"
+                         Password="@Password" PasswordChanged="SetPasswordAsync"
+                         IsLoading="IsLoading" OnLogin="OnLogin" />
         }
         else
         {
-            <p role="status">@Text[TextKey.SignedIn]</p>
-            <button type="button" class="action-button query" disabled="@(IsLoading || !OnLogout.HasDelegate)"
-                    @onclick="OnLogout">@Text[TextKey.SignOut]</button>
-        }
-
         <section class="actions" aria-label="@Text[TextKey.AdminTools]">
             <div class="tabs" aria-label="@Text[TextKey.Sections]">
                 <button type="button" class="@(dinersSelected ? "selected" : null)"
@@ -67,6 +54,7 @@
                 </button>
             </div>
         </section>
+        }
     </div>
 
     @if (IsLoading)
@@ -97,6 +85,7 @@
     private bool dinersSelected = true;
 
     [Parameter] public string Username { get; set; } = "";
+    [Parameter] public string SessionUsername { get; set; } = "";
     [Parameter] public EventCallback<string> UsernameChanged { get; set; }
     [Parameter] public string Password { get; set; } = "";
     [Parameter] public EventCallback<string> PasswordChanged { get; set; }
