@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Keep both languages available for runtime switching in WebAssembly. -->
+    <EmbeddedResource Update="Localization\Strings.es-ES.resx" WithCulture="false" LogicalName="ComunioAdminTools.Core.Localization.Strings.es-ES.resources" />
+    <EmbeddedResource Update="Localization\Strings.ca-ES-valencia.resx" WithCulture="false" LogicalName="ComunioAdminTools.Core.Localization.Strings.ca-ES-valencia.resources" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+</Project>

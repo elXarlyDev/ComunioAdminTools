@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ComunioAdminTools.Core\ComunioAdminTools.Core.csproj" />
+    <Content Remove="wwwroot\localization\*.xml" />
+    <Content Include="wwwroot\localization\es-ES.xml;wwwroot\localization\ca-ES-valencia.xml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Generate public startup catalogs from the exact same resources as Core.
+       Physical files in wwwroot also work with the development file provider. -->
+  <Target Name="CopyLocalizationResources" BeforeTargets="PrepareForBuild;ResolveStaticWebAssetsInputs;GetStaticWebAssetsProjectConfiguration"
+          Inputs="..\ComunioAdminTools.Core\Localization\Strings.es-ES.resx;..\ComunioAdminTools.Core\Localization\Strings.ca-ES-valencia.resx"
+          Outputs="wwwroot\localization\es-ES.xml;wwwroot\localization\ca-ES-valencia.xml">
+    <MakeDir Directories="wwwroot\localization" />
+    <Copy SourceFiles="..\ComunioAdminTools.Core\Localization\Strings.es-ES.resx;..\ComunioAdminTools.Core\Localization\Strings.ca-ES-valencia.resx"
+          DestinationFiles="wwwroot\localization\es-ES.xml;wwwroot\localization\ca-ES-valencia.xml" />
+  </Target>
+
+</Project>

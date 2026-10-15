@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es-ES">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Comunio Admin Tools</title>
+    <meta name="application-name" content="Comunio Admin Tools" />
+    <meta name="apple-mobile-web-app-title" content="Comunio Admin Tools" />
+    <meta name="theme-color" content="#0b4d2c" />
+    <base href="/" />
+    <link rel="preload" id="webassembly" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="_content/ComunioAdminTools.UI/fonts.css" />
+    <link href="ComunioAdminTools.Web.styles.css" rel="stylesheet" />
+    <link href="manifest.webmanifest" rel="manifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+    <script type="importmap"></script>
+</head>
+
+<body>
+    <div id="app">
+        <div class="app-splash" role="status" aria-label="Cargando Comunio Admin Tools">
+            <img class="app-splash-logo" src="icon-512.png" alt="Comunio Admin Tools" width="512" height="512" fetchpriority="high" />
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        <span data-localization="UnhandledError"></span>
+        <a href="." class="reload" data-localization="Reload"></a>
+        <span class="dismiss" role="button" tabindex="0" data-localization-label="Close">🗙</span>
+    </div>
+    <script type="module" src="_content/ComunioAdminTools.UI/localization.js"></script>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
+</body>
+
+</html>

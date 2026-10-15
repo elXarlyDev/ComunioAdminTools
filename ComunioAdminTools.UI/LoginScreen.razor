@@ -1,0 +1,34 @@
+@inherits LocalizedComponentBase
+
+<section class="login-screen" aria-label="@Text[TextKey.SignInTitle]">
+    <header class="brand">
+        <h1>Comunio</h1>
+        <p>Admin Tools</p>
+    </header>
+    <form @onsubmit="OnLogin" @onsubmit:preventDefault>
+        <label class="credential">
+            <span>@Text[TextKey.Username]</span>
+            <input type="text" placeholder="@Text[TextKey.UsernamePlaceholder]" autocomplete="username"
+                   autocapitalize="none" spellcheck="false" disabled="@IsLoading"
+                   @bind:get="Username" @bind:set="UsernameChanged.InvokeAsync" />
+        </label>
+        <label class="credential">
+            <span>@Text[TextKey.Password]</span>
+            <input type="password" placeholder="@Text[TextKey.PasswordPlaceholder]" autocomplete="current-password"
+                   disabled="@IsLoading" @bind:get="Password" @bind:set="PasswordChanged.InvokeAsync" />
+        </label>
+        <button type="submit" class="action-button points" disabled="@(IsLoading || !OnLogin.HasDelegate)">
+            @Text[TextKey.SignIn]
+        </button>
+    </form>
+    <LanguagePicker Disabled="@IsLoading" />
+</section>
+
+@code {
+    [Parameter] public string Username { get; set; } = "";
+    [Parameter] public EventCallback<string> UsernameChanged { get; set; }
+    [Parameter] public string Password { get; set; } = "";
+    [Parameter] public EventCallback<string> PasswordChanged { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public EventCallback OnLogin { get; set; }
+}

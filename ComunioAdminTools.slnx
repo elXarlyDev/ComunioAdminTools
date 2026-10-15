@@ -1,3 +1,6 @@
 <Solution>
-  <Project Path="ComunioAdminTools.csproj" />
+  <Project Path="ComunioAdminTools.Core/ComunioAdminTools.Core.csproj" Id="9e7b12ee-ed70-4c49-b23e-942e6495e618" />
+  <Project Path="ComunioAdminTools.Mobile/ComunioAdminTools.Mobile.csproj" Id="8ee32390-25c2-461a-9db5-dd648605c002" />
+  <Project Path="ComunioAdminTools.UI/ComunioAdminTools.UI.csproj" Id="df6a388a-a074-4410-8df9-3875ebd0139a" />
+  <Project Path="ComunioAdminTools.Web/ComunioAdminTools.Web.csproj" Id="2929ce93-9d49-4470-9a47-166175abf4b1" />
 </Solution>

@@ -1,0 +1,25 @@
+.language-picker {
+    box-sizing: border-box;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 12px 0;
+    font-family: "Open Sans", Arial, sans-serif;
+    color: #26332b;
+}
+.language-picker select {
+    min-height: 40px;
+    padding: 4px 8px;
+    border: 1px solid #d7ded9;
+    border-radius: 8px;
+    background: white;
+    color: inherit;
+    font: inherit;
+}
+.language-picker select:focus-visible {
+    outline: 3px solid #0b4d2c;
+    outline-offset: 3px;
+}

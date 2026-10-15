@@ -1,0 +1,116 @@
+@inherits LocalizedComponentBase
+
+<main class="admin-page" aria-busy="@(IsLoading ? "true" : "false")">
+    @if (HasSession)
+    {
+        <header class="session-header" inert="@(IsLoading || ResultsContent is not null)">
+            <p class="session-user" title="@SessionUsername">@SessionUsername</p>
+            <button type="button" class="action-button sign-out" disabled="@(IsLoading || !OnLogout.HasDelegate)"
+                    @onclick="OnLogout">@Text[TextKey.SignOut]</button>
+        </header>
+    }
+    <div class="main-content" inert="@(IsLoading || ResultsContent is not null)">
+        @if (!HasSession)
+        {
+            <LoginScreen Username="@Username" UsernameChanged="SetUsernameAsync"
+                         Password="@Password" PasswordChanged="SetPasswordAsync"
+                         IsLoading="IsLoading" OnLogin="OnLogin" />
+        }
+        else
+        {
+        <section class="actions" aria-label="@Text[TextKey.AdminTools]">
+            <div class="tabs" aria-label="@Text[TextKey.Sections]">
+                <button type="button" class="@(dinersSelected ? "selected" : null)"
+                        aria-pressed="@(dinersSelected ? "true" : "false")"
+                        @onclick="() => dinersSelected = true">@Text[TextKey.Money]</button>
+                <button type="button" class="@(!dinersSelected ? "selected" : null)"
+                        aria-pressed="@(!dinersSelected ? "true" : "false")"
+                        @onclick="() => dinersSelected = false">@Text[TextKey.Queries]</button>
+            </div>
+
+            <div class="action-panel" hidden="@(!dinersSelected)">
+                <button type="button" class="action-button points"
+                        disabled="@(IsLoading || !OnSetPointsCash.HasDelegate)" @onclick="OnSetPointsCash">
+                    @Text[TextKey.PayPoints]
+                </button>
+                <button type="button" class="action-button revert"
+                        disabled="@(IsLoading || !OnRevertPointsCash.HasDelegate)" @onclick="OnRevertPointsCash">
+                    @Text[TextKey.RevertPoints]
+                </button>
+                <button type="button" class="action-button bonus"
+                        disabled="@(IsLoading || !OnAddFiveMillionCash.HasDelegate)" @onclick="OnAddFiveMillionCash">
+                    @Text[TextKey.PayBreak]
+                </button>
+            </div>
+
+            <div class="action-panel" hidden="@dinersSelected">
+                <button type="button" class="action-button query"
+                        disabled="@(IsLoading || !OnShowTeamsLastPoints.HasDelegate)" @onclick="OnShowTeamsLastPoints">
+                    @Text[TextKey.QueryPoints]
+                </button>
+                <button type="button" class="action-button query"
+                        disabled="@(IsLoading || !OnCheckSquadExcess.HasDelegate)" @onclick="OnCheckSquadExcess">
+                    @Text[TextKey.QuerySquads]
+                </button>
+            </div>
+        </section>
+        }
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="overlay">
+            <div class="loading-card" role="status" aria-live="polite">
+                <span class="spinner" aria-hidden="true"></span>
+                <span>@Text[TextKey.Loading]</span>
+            </div>
+        </div>
+    }
+
+    @if (ResultsContent is not null)
+    {
+        <div class="overlay">
+            <section class="results-card" role="dialog" aria-label="@(ResultsTitle ?? Text[TextKey.Results])" aria-modal="true">
+                <h2>@(ResultsTitle ?? Text[TextKey.Results])</h2>
+                <div class="results-body">@ResultsContent</div>
+                <button type="button" class="action-button points" disabled="@(!OnCloseResults.HasDelegate)"
+                        @onclick="OnCloseResults">@Text[TextKey.Close]</button>
+            </section>
+        </div>
+    }
+</main>
+
+@code {
+    // Presentation only. AdminPage connects these callbacks to Core services.
+    private bool dinersSelected = true;
+
+    [Parameter] public string Username { get; set; } = "";
+    [Parameter] public string SessionUsername { get; set; } = "";
+    [Parameter] public EventCallback<string> UsernameChanged { get; set; }
+    [Parameter] public string Password { get; set; } = "";
+    [Parameter] public EventCallback<string> PasswordChanged { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public bool HasSession { get; set; }
+    [Parameter] public EventCallback OnLogin { get; set; }
+    [Parameter] public EventCallback OnLogout { get; set; }
+    [Parameter] public EventCallback OnSetPointsCash { get; set; }
+    [Parameter] public EventCallback OnRevertPointsCash { get; set; }
+    [Parameter] public EventCallback OnAddFiveMillionCash { get; set; }
+    [Parameter] public EventCallback OnShowTeamsLastPoints { get; set; }
+    [Parameter] public EventCallback OnCheckSquadExcess { get; set; }
+    [Parameter] public string? ResultsTitle { get; set; }
+    [Parameter] public RenderFragment? ResultsContent { get; set; }
+    [Parameter] public EventCallback OnCloseResults { get; set; }
+
+    private async Task SetUsernameAsync(string value)
+    {
+        Username = value;
+        await UsernameChanged.InvokeAsync(value);
+    }
+
+    private async Task SetPasswordAsync(string value)
+    {
+        Password = value;
+        await PasswordChanged.InvokeAsync(value);
+    }
+}

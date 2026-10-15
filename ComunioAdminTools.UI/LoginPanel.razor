@@ -1,0 +1,71 @@
+@using ComunioAdminTools.Core.Authentication
+@inherits LocalizedComponentBase
+@inject AuthService Auth
+@implements IDisposable
+
+@if (signedIn)
+{
+    <p>@Text[TextKey.SignedIn]</p>
+    <button @onclick="LogoutAsync" disabled="@busy">@Text[TextKey.SignOut]</button>
+}
+else
+{
+    <h1>@Text[TextKey.SignInTitle]</h1>
+    <form @onsubmit="LoginAsync" @onsubmit:preventDefault>
+        <p><label>@Text[TextKey.Username] <input @bind="username" autocomplete="username" disabled="@busy" /></label></p>
+        <p><label>@Text[TextKey.Password] <input type="password" @bind="password" autocomplete="current-password" disabled="@busy" /></label></p>
+        <button type="submit" disabled="@busy">@Text[busy ? TextKey.Connecting : TextKey.SignIn]</button>
+    </form>
+}
+@if (error is not null || errorKey is not null)
+{
+    <p role="alert">@(error is not null ? Text.ErrorMessage(error, TextKey.SignInError) : Text[errorKey!.Value])</p>
+}
+
+@code {
+    private string username = "";
+    private string password = "";
+    private Exception? error;
+    private TextKey? errorKey;
+    private bool signedIn;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Auth.SessionChanged += OnSessionChanged;
+        try { signedIn = await Auth.HasSessionAsync(); }
+        catch { errorKey = TextKey.RestoreSessionError; }
+    }
+
+    private async Task LoginAsync()
+    {
+        busy = true;
+        error = null;
+        errorKey = null;
+        try
+        {
+            await Auth.LoginAsync(username, password);
+            signedIn = true;
+        }
+        catch (Exception ex) { error = ex; }
+        finally { password = ""; busy = false; }
+    }
+
+    private async Task LogoutAsync()
+    {
+        busy = true;
+        error = null;
+        errorKey = null;
+        try { await Auth.LogoutAsync(); signedIn = false; }
+        catch { errorKey = TextKey.SignOutError; }
+        finally { busy = false; }
+    }
+
+    private void OnSessionChanged() => _ = InvokeAsync(async () =>
+    {
+        signedIn = await Auth.HasSessionAsync();
+        StateHasChanged();
+    });
+
+    public void Dispose() => Auth.SessionChanged -= OnSessionChanged;
+}

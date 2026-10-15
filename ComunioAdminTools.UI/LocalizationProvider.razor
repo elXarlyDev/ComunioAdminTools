@@ -1,0 +1,68 @@
+@using ComunioAdminTools.Core.Localization
+@using Microsoft.JSInterop
+@inject AppLocalization Text
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<CascadingValue Value="Text.Culture">
+    @if (ready)
+    {
+        <CascadingValue Name="ChangeLanguage" Value="@((Func<string, Task>)ChangeLanguageAsync)">
+        <ErrorBoundary>
+            <ChildContent>@ChildContent</ChildContent>
+            <ErrorContent>
+                <p role="alert">@Text[TextKey.UnhandledError]</p>
+                <a href="">@Text[TextKey.Reload]</a>
+            </ErrorContent>
+        </ErrorBoundary>
+        </CascadingValue>
+    }
+    else
+    {
+        <p role="status">@Text[TextKey.Loading]</p>
+    }
+</CascadingValue>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    private IJSObjectReference? module;
+    private bool ready;
+
+    protected override void OnInitialized() => Text.Changed += OnLanguageChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/ComunioAdminTools.UI/localization.js");
+            Text.SetCulture(await module.InvokeAsync<string>("initialize"));
+        }
+        catch (JSException) { /* Use Spanish if browser preferences are unavailable. */ }
+        ready = true;
+        StateHasChanged();
+    }
+
+    private async Task ChangeLanguageAsync(string value)
+    {
+        var language = AppLocalization.NormalizeCulture(value);
+        Text.SetCulture(language);
+        if (module is not null)
+        {
+            try { await module.InvokeVoidAsync("setLanguage", language); }
+            catch (JSException) { /* The in-memory selection still applies. */ }
+        }
+    }
+
+    private void OnLanguageChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public async ValueTask DisposeAsync()
+    {
+        Text.Changed -= OnLanguageChanged;
+        if (module is not null)
+        {
+            try { await module.DisposeAsync(); }
+            catch (JSDisconnectedException) { }
+        }
+    }
+}

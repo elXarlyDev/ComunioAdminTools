@@ -1,0 +1,5 @@
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { padding: 12px 8px; border-bottom: 1px solid #d7ded9; text-align: left; }
+th { color: #0b4d2c; }
+th:last-child, td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+p { margin: 0 0 12px; line-height: 1.5; }
