@@ -1,5 +1,7 @@
 # Sesión de Comunio
 
+Los avisos opcionales de login por Telegram se documentan en [Telegram.md](Telegram.md).
+
 `AddComunioCore()` registra una sesión única por instancia de la app. Los servicios
 deben recibir `IHttpClientFactory` y usar `CreateClient("Comunio")`, o heredar de
 `ComunioService` pasando la factory a su constructor. Los clientes creados mediante

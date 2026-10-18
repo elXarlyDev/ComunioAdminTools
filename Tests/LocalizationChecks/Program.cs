@@ -149,6 +149,11 @@ await using (var renderer = new HtmlRenderer(services, services.GetRequiredServi
         return await renderer.Dispatcher.InvokeAsync(() => WebUtility.HtmlDecode(root.ToHtmlString()));
     }
 
+    var initialHtml = await renderer.Dispatcher.InvokeAsync(() => root.ToHtmlString());
+    Check(!System.Text.RegularExpressions.Regex.IsMatch(initialHtml, "<header[^>]*\\binert(?:[=\\s>])")
+        && !System.Text.RegularExpressions.Regex.IsMatch(initialHtml, "<button[^>]*class=\"action-button sign-out\"[^>]*\\bdisabled(?:[=\\s>])"),
+        "The idle header is interactive and sign-out is enabled.");
+
     var html = await ClickAsync("PayRoundPointsAsync");
     Check(html.Contains(text[TextKey.PaidMoney]) && html.Contains("Player A")
         && html.Contains(text[TextKey.RevertPoints]) && !html.Contains("role=\"dialog\""),
@@ -268,6 +273,10 @@ await using (var renderer = new HtmlRenderer(services, services.GetRequiredServi
     await ClickAsync("ShowClassificationsAsync");
     html = await ClickAsync("ShowPointsAsync");
     Check(!html.Contains("classification-filters"), "Other query actions hide classification selectors.");
+    await ClickAsync("LogoutAsync");
+    Check(services.GetRequiredService<ISessionManager>().Session is null
+        && services.GetRequiredService<NavigationManager>().Uri == "https://example.test/app/",
+        "Sign-out clears the session and navigates back to login.");
 }
 api.Body = null;
 await auth.LogoutAsync();

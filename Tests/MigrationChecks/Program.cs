@@ -7,6 +7,7 @@ using ComunioAdminTools.Core.Models;
 using ComunioAdminTools.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 static void Check(bool value, string message)
 {
@@ -197,7 +198,70 @@ restartedServices.AddComunioCore();
 using var restartedClient = restartedServices.BuildServiceProvider();
 await CheckSessionClearedAsync(restartedClient.GetRequiredService<ISessionManager>(),
     "Un proceso nuevo exige login y no dispone de los tokens de otra instancia.");
-Console.WriteLine("Comprobaciones de migracion correctas; sin peticiones reales a Comunio.");
+var notificationApi = new FakeApi();
+var telegramApi = new FakeTelegramApi();
+var notificationServices = new ServiceCollection();
+notificationServices.AddComunioCore();
+notificationServices.AddTelegramLoginNotifications("123456789:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 12345);
+notificationServices.AddHttpClient("ComunioAuth").ConfigurePrimaryHttpMessageHandler(() => notificationApi);
+notificationServices.AddHttpClient("Comunio").ConfigurePrimaryHttpMessageHandler(() => notificationApi);
+notificationServices.AddHttpClient("TelegramNotifications").ConfigurePrimaryHttpMessageHandler(() => telegramApi);
+using var notificationClient = notificationServices.BuildServiceProvider();
+var notificationAuth = notificationClient.GetRequiredService<AuthService>();
+var notificationSession = notificationClient.GetRequiredService<ISessionManager>();
+telegramApi.ProfileIsLoaded = () => notificationSession.Session is not null;
+
+await notificationAuth.LoginAsync("another-user", "not-a-real-password");
+Check(telegramApi.Messages.Count == 0, "No se notifican otros usuarios.");
+notificationApi.FailProfile = true;
+try
+{
+    await notificationAuth.LoginAsync("ElGatFumat", "not-a-real-password");
+    throw new Exception("Se esperaba un fallo de carga del perfil.");
+}
+catch (AuthenticationRequiredException)
+{
+    Check(telegramApi.Messages.Count == 0, "No se notifica un login con perfil fallido.");
+}
+notificationApi.FailProfile = false;
+await notificationAuth.LoginAsync("ElGatFumat", "not-a-real-password");
+var sent = telegramApi.Messages.Single();
+var sentText = sent.Value<string>("text")!;
+Check(sent.Value<long>("chat_id") == 12345 && sentText.StartsWith("Chinchilla\n")
+    && sentText.Contains("ElGatFumat") && sentText.Contains("Fecha (UTC):")
+    && !sentText.Contains("not-a-real-password") && !sentText.Contains("refresh")
+    && !sentText.Contains("access_token"), "El aviso solo contiene usuario y fecha, sin credenciales ni tokens.");
+Check(telegramApi.AllProfilesLoaded, "El aviso se envia despues de cargar el perfil.");
+await notificationAuth.LogoutAsync();
+Check(telegramApi.Messages.Count == 1, "Logout no genera otro aviso.");
+telegramApi.Fail = true;
+await notificationAuth.LoginAsync("ElGatFumat", "not-a-real-password");
+Check(notificationSession.Session is not null && await notificationSession.GetValidAccessTokenAsync() == "test"
+    && telegramApi.Messages.Count == 2, "Un fallo de Telegram conserva la sesion y no se reintenta.");
+Console.WriteLine("Comprobaciones de migracion correctas; sin peticiones reales a Comunio ni Telegram.");
+
+sealed class FakeTelegramApi : HttpMessageHandler
+{
+    public List<JObject> Messages { get; } = [];
+    public Func<bool> ProfileIsLoaded { get; set; } = () => false;
+    public bool AllProfilesLoaded { get; private set; } = true;
+    public bool Fail { get; set; }
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        if (!request.RequestUri!.AbsolutePath.EndsWith("/sendMessage"))
+            throw new Exception("Operacion Telegram inesperada.");
+        Messages.Add(JObject.Parse(await request.Content!.ReadAsStringAsync(cancellationToken)));
+        AllProfilesLoaded &= ProfileIsLoaded();
+        var body = Fail
+            ? "{\"ok\":false,\"error_code\":503,\"description\":\"Simulated Telegram error\"}"
+            : "{\"ok\":true,\"result\":{\"message_id\":1,\"date\":1792323058,\"chat\":{\"id\":12345,\"type\":\"private\"},\"text\":\"Sent\"}}";
+        return new(Fail ? HttpStatusCode.ServiceUnavailable : HttpStatusCode.OK)
+        {
+            Content = new StringContent(body, Encoding.UTF8, "application/json")
+        };
+    }
+}
 
 sealed class FakeApi : HttpMessageHandler
 {
