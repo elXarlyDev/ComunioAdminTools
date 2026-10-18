@@ -19,7 +19,6 @@ namespace ComunioAdminTools.Mobile
 
             builder.Services.AddMauiBlazorWebView();
             builder.Services.AddSingleton<ComunioAdminTools.UI.ResultsDialogController>();
-            builder.Services.AddSingleton<ComunioAdminTools.Core.Authentication.ITokenStore, Authentication.SecureTokenStore>();
             builder.Services.AddComunioCore();
 
 #if DEBUG
@@ -27,7 +26,10 @@ namespace ComunioAdminTools.Mobile
     		builder.Logging.AddDebug();
 #endif
 
-            return builder.Build();
+            var app = builder.Build();
+            // Remove the unused access token persisted by earlier versions.
+            SecureStorage.Default.Remove("comunio.access-token.v1");
+            return app;
         }
     }
 }

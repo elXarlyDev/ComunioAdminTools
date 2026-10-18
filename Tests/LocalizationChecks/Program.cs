@@ -59,7 +59,7 @@ foreach (var language in new[] { AppLocalization.SpanishCulture, AppLocalization
         api.LoginStatus = status;
         Check((await Capture(() => auth.LoginAsync("user", "password"))).Message == text[TextKey.SignInError],
             "Every non-200 authentication response uses the same error.");
-        Check(!await services.GetRequiredService<ISessionManager>().HasSessionAsync(), "Rejected authentication leaves no session.");
+        Check(services.GetRequiredService<ISessionManager>().Session is null, "Rejected authentication leaves no session.");
     }
     api.LoginStatus = HttpStatusCode.OK;
     await auth.LoginAsync("user", "password");
@@ -86,8 +86,6 @@ foreach (var language in new[] { AppLocalization.SpanishCulture, AppLocalization
     api.TransportError = new TaskCanceledException("UNTRANSLATED TIMEOUT");
     Check((await Capture(() => services.GetRequiredService<PointsService>().GetLastRoundPointsAsync())).Message == text[TextKey.TimeoutError], "Localized timeout.");
     api.TransportError = null;
-    var factory = services.GetRequiredService<IHttpClientFactory>();
-    Check((await Capture(() => factory.CreateClient("Comunio").GetAsync("https://example.com/"))).Message == text[TextKey.TokenDestinationNotAllowed], "Localized domain restriction.");
     var partial = new CashOperationException(text, "A < B", [], new Exception("external"));
     Check(partial.Message == text.Format(TextKey.CashOperationError, "A < B"), "Localized formatted partial payment.");
 }

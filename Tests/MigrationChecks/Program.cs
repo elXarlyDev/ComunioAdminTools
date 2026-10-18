@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using ComunioAdminTools.Core;
 using ComunioAdminTools.Core.Authentication;
+using ComunioAdminTools.Core.Localization;
 using ComunioAdminTools.Core.Models;
 using ComunioAdminTools.Core.Services;
 using ComunioAdminTools.UI;
@@ -11,6 +12,20 @@ using Newtonsoft.Json;
 static void Check(bool value, string message)
 {
     if (!value) throw new Exception(message);
+}
+
+static async Task CheckSessionClearedAsync(ISessionManager session, string message)
+{
+    Check(session.Session is null, message);
+    try
+    {
+        await session.GetValidAccessTokenAsync();
+        throw new Exception(message);
+    }
+    catch (AuthenticationRequiredException ex)
+    {
+        Check(ex.ResourceKey == TextKey.SignInRequired, message);
+    }
 }
 
 var api = new FakeApi();
@@ -50,8 +65,7 @@ catch (CashOperationException ex)
     Check(ex.ConfirmedPayments.Single().Amount == 20_000_000 && api.PaymentAttempts == 3, "Conservar bloques confirmados, detenerse y no reintentar.");
 }
 await auth.LogoutAsync();
-Check(!await provider.GetRequiredService<ISessionManager>().HasSessionAsync(), "Logout elimina la sesion.");
-Check(provider.GetRequiredService<ISessionManager>().Session is null, "Logout borra el perfil en memoria.");
+await CheckSessionClearedAsync(provider.GetRequiredService<ISessionManager>(), "Logout elimina tokens y perfil.");
 api.FailProfile = true;
 try
 {
@@ -60,9 +74,18 @@ try
 }
 catch (AuthenticationRequiredException)
 {
-    Check(!await provider.GetRequiredService<ISessionManager>().HasSessionAsync(), "Un login fallido limpia la sesion en memoria.");
-    Check(await provider.GetRequiredService<ITokenStore>().GetTokenAsync() is null,
-        "Un login fallido elimina los tokens guardados.");
+    await CheckSessionClearedAsync(provider.GetRequiredService<ISessionManager>(),
+        "Un login fallido elimina tokens y perfil.");
+}
+try
+{
+    await provider.GetRequiredService<ISessionManager>().LoadAsync(new("test", "refresh", DateTimeOffset.UtcNow.AddMinutes(30)));
+    throw new Exception("Se esperaba un fallo al cargar el perfil directamente.");
+}
+catch (HttpRequestException)
+{
+    await CheckSessionClearedAsync(provider.GetRequiredService<ISessionManager>(),
+        "LoadAsync limpia tokens y perfil por si mismo cuando falla la carga.");
 }
 api.FailProfile = false;
 await auth.LoginAsync("user", "password");
@@ -77,24 +100,79 @@ restoredServices.AddComunioCore();
 restoredServices.AddHttpClient("ComunioAuth").ConfigurePrimaryHttpMessageHandler(() => restoredApi);
 restoredServices.AddHttpClient("Comunio").ConfigurePrimaryHttpMessageHandler(() => restoredApi);
 using var restoredClient = restoredServices.BuildServiceProvider();
-await restoredClient.GetRequiredService<ISessionManager>().StartAsync(new("test", "refresh", DateTimeOffset.UtcNow.AddMinutes(-1)));
+restoredApi.ExpireNextToken = true;
+await restoredClient.GetRequiredService<AuthService>().LoginAsync("user", "password").WaitAsync(TimeSpan.FromSeconds(10));
+Check(restoredApi.TokenRequests == 1 && restoredApi.ProfileRequests == 1,
+    "El perfil inicial usa el token explicito sin pasar por el handler ni renovar.");
 using var restoredHttp = restoredClient.GetRequiredService<IHttpClientFactory>().CreateClient("Comunio");
 var responses = await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => restoredHttp.GetAsync("")));
-Check(responses.All(x => x.IsSuccessStatusCode) && restoredApi.TokenRequests == 1,
+Check(responses.All(x => x.IsSuccessStatusCode) && restoredApi.TokenRequests == 2,
     "El pipeline renueva una sola vez antes de enviar las peticiones concurrentes.");
 foreach (var response in responses) response.Dispose();
-Check(await restoredClient.GetRequiredService<ITokenStore>().GetTokenAsync() == "test", "El handler dispone del token renovado como string.");
-await restoredClient.GetRequiredService<ISessionManager>().LogoutAsync();
-Check(await restoredClient.GetRequiredService<ITokenStore>().GetTokenAsync() is null,
+var restoredSession = restoredClient.GetRequiredService<ISessionManager>();
+Check(await restoredSession.GetValidAccessTokenAsync() == "test", "El handler dispone del token renovado.");
+restoredApi.TokenLifetimeSeconds = 30;
+await restoredClient.GetRequiredService<AuthService>().LoginAsync("user", "password");
+var cachedProfile = restoredSession.Session;
+var profileRequests = restoredApi.ProfileRequests;
+await restoredSession.GetValidAccessTokenAsync();
+Check(ReferenceEquals(cachedProfile, restoredSession.Session) && restoredApi.ProfileRequests == profileRequests,
+    "Renovar conserva el perfil sin volver a cargarlo.");
+restoredApi.FailTokenTransport = true;
+try
+{
+    await restoredSession.GetValidAccessTokenAsync();
+    throw new Exception("Se esperaba un error de transporte al renovar.");
+}
+catch (HttpRequestException)
+{
+    Check(ReferenceEquals(cachedProfile, restoredSession.Session),
+        "Un fallo de transporte al renovar conserva el perfil.");
+}
+restoredApi.FailTokenTransport = false;
+Check(await restoredSession.GetValidAccessTokenAsync() == "test",
+    "Tras recuperarse la conexion se puede renovar sin iniciar sesion otra vez.");
+restoredApi.RejectTokens = true;
+try
+{
+    await restoredSession.GetValidAccessTokenAsync();
+    throw new Exception("Se esperaba el rechazo de la renovacion.");
+}
+catch (AuthenticationRequiredException)
+{
+    await CheckSessionClearedAsync(restoredSession,
+        "Una renovacion rechazada elimina tokens y perfil juntos.");
+}
+await restoredClient.GetRequiredService<AuthService>().LogoutAsync();
+await CheckSessionClearedAsync(restoredSession,
     "Logout elimina el token del handler.");
-var leftoverToken = new MemoryTokenStore();
-await leftoverToken.SetTokenAsync("old-access-token");
+try
+{
+    await restoredSession.LoadAsync(new("test", null, DateTimeOffset.UtcNow.AddMinutes(-1)));
+    await restoredSession.GetValidAccessTokenAsync();
+    throw new Exception("Se esperaba el rechazo de un token caducado sin refresh token.");
+}
+catch (AuthenticationRequiredException ex)
+{
+    Check(ex.ResourceKey == TextKey.SessionExpired,
+        "La caducidad sin refresh token devuelve el error de sesion expirada.");
+    await CheckSessionClearedAsync(restoredSession,
+        "La caducidad sin refresh token elimina la sesion.");
+}
+restoredApi.RejectTokens = false;
+restoredApi.OmitRefreshToken = true;
+restoredApi.TokenLifetimeSeconds = 1800;
+var renewedToken = await restoredClient.GetRequiredService<IComunioTokenClient>().RefreshAsync("previous-refresh");
+Check(renewedToken.RefreshToken == "previous-refresh"
+    && renewedToken.ExpiresAtUtc > DateTimeOffset.UtcNow.AddMinutes(29),
+    "El cliente calcula la caducidad y conserva el refresh token si la API no lo devuelve.");
+await CheckSessionClearedAsync(restoredSession,
+    "Solicitar tokens no modifica ni almacena la sesion.");
 var restartedServices = new ServiceCollection();
-restartedServices.AddSingleton<ITokenStore>(leftoverToken);
 restartedServices.AddComunioCore();
 using var restartedClient = restartedServices.BuildServiceProvider();
-Check(!await restartedClient.GetRequiredService<ISessionManager>().HasSessionAsync(),
-    "Un proceso nuevo exige login aunque el almacén conserve un access token.");
+await CheckSessionClearedAsync(restartedClient.GetRequiredService<ISessionManager>(),
+    "Un proceso nuevo exige login y no dispone de los tokens de otra instancia.");
 var dialog = new ResultsDialogController();
 var closed = 0;
 dialog.CloseRequested += () => closed++;
@@ -111,6 +189,11 @@ sealed class FakeApi : HttpMessageHandler
     public int PaymentAttempts { get; private set; }
     public int? FailAtPayment { get; set; }
     public bool FailProfile { get; set; }
+    public bool RejectTokens { get; set; }
+    public bool FailTokenTransport { get; set; }
+    public bool ExpireNextToken { get; set; }
+    public bool OmitRefreshToken { get; set; }
+    public int TokenLifetimeSeconds { get; set; } = 1800;
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -120,8 +203,13 @@ sealed class FakeApi : HttpMessageHandler
         object response;
         if (path == "/login")
         {
+            if (request.Headers.Authorization is not null)
+                throw new Exception("Las peticiones de tokens no deben incluir Bearer.");
             TokenRequests++;
-            response = new { access_token = "test", refresh_token = "refresh", expires_in = 1800 };
+            if (FailTokenTransport) throw new HttpRequestException("Simulated transport failure.");
+            if (RejectTokens) return new(HttpStatusCode.Unauthorized);
+            response = new { access_token = "test", refresh_token = OmitRefreshToken ? null : "refresh", expires_in = ExpireNextToken ? -60 : TokenLifetimeSeconds };
+            ExpireNextToken = false;
         }
         else if (path == "/")
         {

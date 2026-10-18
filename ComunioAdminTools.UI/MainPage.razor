@@ -99,48 +99,37 @@
             : row.Value.ToString("N0", Text.Culture))).ToArray();
     private RenderFragment ResultContent => @<ActionResults Rows="Rows" ValueHeading="@Text[headingKey]" Message="@Message" />;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         Dialog.CloseRequested += OnCloseRequested;
         Session.SessionChanged += OnSessionChanged;
-        try { await UpdateSessionAsync(); }
+        try { UpdateSession(); }
         catch { ShowMessage(TextKey.RestoreSessionError); }
         finally { busy = false; }
     }
 
-    private async Task UpdateSessionAsync()
+    private void UpdateSession()
     {
-        if (Session.Session is null || !await Session.HasSessionAsync())
+        if (Session.Session is not { } profile)
         {
             hasSession = false;
             sessionUsername = "";
             Navigation.NavigateTo("", replace: true);
             return;
         }
-        var profile = Session.Session;
         sessionUsername = !string.IsNullOrWhiteSpace(profile.User.Name) ? profile.User.Name
             : !string.IsNullOrWhiteSpace(profile.User.FirstName) ? profile.User.FirstName : "";
         hasSession = true;
     }
 
-    private async Task EnsureSessionAsync()
+    private void EnsureSession()
     {
-        if (Session.Session is null || !await Session.HasSessionAsync())
-        {
-            hasSession = false;
-            Navigation.NavigateTo("", replace: true);
+        UpdateSession();
+        if (!hasSession)
             throw new AuthenticationRequiredException(Text, TextKey.SignInRequired);
-        }
-        hasSession = true;
     }
 
-    private Task LogoutAsync() => RunAsync(async () =>
-    {
-        await Auth.LogoutAsync();
-        hasSession = false;
-        sessionUsername = "";
-        Navigation.NavigateTo("", replace: true);
-    }, requiresSession: false);
+    private Task LogoutAsync() => RunAsync(() => Auth.LogoutAsync(), requiresSession: false);
 
     private Task PayRoundPointsAsync() => RunAsync(async () =>
         ShowCash(TextKey.PaidMoney, await Cash.PayRoundPointsAsync()));
@@ -169,7 +158,7 @@
         busy = true;
         try
         {
-            if (requiresSession) await EnsureSessionAsync();
+            if (requiresSession) EnsureSession();
             await action();
         }
         catch (CashOperationException ex)
@@ -184,7 +173,7 @@
         }
         finally
         {
-            try { await UpdateSessionAsync(); }
+            try { UpdateSession(); }
             catch { hasSession = false; sessionUsername = ""; }
             busy = false;
         }
@@ -230,10 +219,10 @@
         StateHasChanged();
     });
 
-    private void OnSessionChanged() => _ = InvokeAsync(async () =>
+    private void OnSessionChanged() => _ = InvokeAsync(() =>
     {
         if (busy || !hasSession) return;
-        try { await UpdateSessionAsync(); }
+        try { UpdateSession(); }
         catch { hasSession = false; sessionUsername = ""; }
         StateHasChanged();
     });

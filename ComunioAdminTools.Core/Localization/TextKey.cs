@@ -71,6 +71,4 @@ public enum TextKey
     UnhandledError,
     Reload,
     LibraryComponent,
-    ReadTokenStoreError,
-    WriteTokenStoreError,
 }

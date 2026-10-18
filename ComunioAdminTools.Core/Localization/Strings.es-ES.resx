@@ -73,6 +73,4 @@
   <data name="UnhandledError" xml:space="preserve"><value>Se ha producido un error inesperado.</value></data>
   <data name="Reload" xml:space="preserve"><value>Recargar</value></data>
   <data name="LibraryComponent" xml:space="preserve"><value>Este componente pertenece a la biblioteca {0}.</value></data>
-  <data name="ReadTokenStoreError" xml:space="preserve"><value>No se ha podido acceder a la sesión guardada.</value></data>
-  <data name="WriteTokenStoreError" xml:space="preserve"><value>No se han podido guardar los cambios de la sesión.</value></data>
 </root>

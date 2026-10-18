@@ -1,5 +1,7 @@
-using ComunioAdminTools.Core.Models;
+using System.Net.Http.Headers;
+
 using ComunioAdminTools.Core.Localization;
+using ComunioAdminTools.Core.Models;
 using ComunioAdminTools.Core.Services;
 
 namespace ComunioAdminTools.Core.Authentication;
@@ -7,68 +9,52 @@ namespace ComunioAdminTools.Core.Authentication;
 public interface ISessionManager
 {
     SessionDataModel? Session { get; }
+
     event Action? SessionChanged;
-    Task<bool> HasSessionAsync(CancellationToken cancellationToken = default);
+
+    Task LoadAsync(TokenSession tokenSession, CancellationToken cancellationToken = default);
+    Task ClearAsync(CancellationToken cancellationToken = default);
     Task<string> GetValidAccessTokenAsync(CancellationToken cancellationToken = default);
-    Task LogoutAsync(CancellationToken cancellationToken = default);
-    Task StartAsync(TokenSession tokenSession, CancellationToken cancellationToken = default);
-    Task LoadAsync(CancellationToken cancellationToken = default);
-    void Clear();
 }
 
 // One instance per MAUI/WebAssembly client, never a shared server-user session.
-public sealed class SessionManager(IHttpClientFactory factory, ITokenStore store, ComunioAuthOptions options, AppLocalization text) : ISessionManager
+public sealed class SessionManager(IHttpClientFactory factory, IComunioTokenClient tokenClient, AppLocalization text) : ISessionManager
 {
+    private static readonly TimeSpan RefreshMargin = TimeSpan.FromSeconds(60);
     private readonly SemaphoreSlim gate = new(1, 1);
-    private TokenSession? tokenSession;
+    private SessionState? state;
 
-    public async Task StartAsync(TokenSession value, CancellationToken cancellationToken = default)
-    {
-        Clear();
-        await SaveAsync(value, cancellationToken);
-        await LoadAsync(cancellationToken);
-    }
+    public SessionDataModel? Session => state?.Data;
 
-    private async Task SaveAsync(TokenSession? value, CancellationToken cancellationToken)
-    {
-        tokenSession = value;
-        await store.SetTokenAsync(value?.AccessToken);
-    }
     public event Action? SessionChanged;
 
-    public Task<bool> HasSessionAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult(tokenSession is not null);
-
-    public async Task LogoutAsync(CancellationToken cancellationToken = default)
+    // AuthService serializes login/logout; gate coordinates state changes with refresh.
+    public async Task LoadAsync(TokenSession value, CancellationToken cancellationToken = default)
     {
         await gate.WaitAsync(cancellationToken);
-        try { await ClearAsync(cancellationToken); }
+        try
+        {
+            state = null;
+            var profile = await LoadProfileAsync(value.AccessToken, cancellationToken);
+            state = new SessionState(value) { Data = profile };
+        }
+        catch
+        {
+            state = null;
+            throw;
+        }
+        finally
+        {
+            gate.Release();
+            SessionChanged?.Invoke();
+        }
+    }
+
+    public async Task ClearAsync(CancellationToken cancellationToken = default)
+    {
+        await gate.WaitAsync(cancellationToken);
+        try { state = null; }
         finally { gate.Release(); }
-        SessionChanged?.Invoke();
-    }
-
-    private async Task ClearAsync(CancellationToken cancellationToken)
-    {
-        Clear();
-        await SaveAsync(null, cancellationToken);
-    }
-
-    public SessionDataModel? Session { get; private set; }
-
-    public void Clear() => Session = null;
-
-    public async Task LoadAsync(CancellationToken cancellationToken = default)
-    {
-        if (Session is not null) return;
-
-        using var client = factory.CreateClient("Comunio");
-        using var request = new HttpRequestMessage(HttpMethod.Get, string.Empty);
-        using var response = await ComunioHttp.SendAsync(client, request, text, cancellationToken);
-
-        ComunioHttp.EnsureSuccess(response, text);
-        var result = ComunioHttp.Deserialize<SessionDataModel>(await response.Content.ReadAsStringAsync(cancellationToken), text, TextKey.EmptySessionResponse);
-
-        Session = result;
         SessionChanged?.Invoke();
     }
 
@@ -78,34 +64,18 @@ public sealed class SessionManager(IHttpClientFactory factory, ITokenStore store
         await gate.WaitAsync(cancellationToken);
         try
         {
-            var current = tokenSession
+            var session = state
                 ?? throw new AuthenticationRequiredException(text, TextKey.SignInRequired);
-            if (current.ExpiresAtUtc > DateTimeOffset.UtcNow + options.RefreshMargin)
-                return current.AccessToken;
+            if (session.Token.ExpiresAtUtc <= DateTimeOffset.UtcNow + RefreshMargin)
+                session.Token = await RefreshTokenAsync(session.Token, cancellationToken);
 
-            if (string.IsNullOrWhiteSpace(current.RefreshToken))
-            {
-                await ClearAsync(CancellationToken.None);
-                invalidated = true;
-                throw new AuthenticationRequiredException(text, TextKey.SessionExpired);
-            }
-            if (options.CreateRefreshRequest is null)
-                throw new AuthenticationRequiredException(text, TextKey.RefreshNotConfigured);
-
-            using var request = options.CreateRefreshRequest(current.RefreshToken);
-            try
-            {
-                var result = await AuthService.SendTokenRequestAsync(factory, text, request, cancellationToken);
-                var renewed = AuthService.CreateSession(result, current.RefreshToken);
-                await SaveAsync(renewed, cancellationToken);
-                return renewed.AccessToken;
-            }
-            catch (AuthenticationRequiredException)
-            {
-                await ClearAsync(CancellationToken.None);
-                invalidated = true;
-                throw;
-            }
+            return session.Token.AccessToken;
+        }
+        catch (AuthenticationRequiredException) when (state is not null)
+        {
+            state = null;
+            invalidated = true;
+            throw;
         }
         finally
         {
@@ -114,4 +84,29 @@ public sealed class SessionManager(IHttpClientFactory factory, ITokenStore store
         }
     }
 
+    private Task<TokenSession> RefreshTokenAsync(TokenSession token, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(token.RefreshToken))
+            throw new AuthenticationRequiredException(text, TextKey.SessionExpired);
+
+        return tokenClient.RefreshAsync(token.RefreshToken, cancellationToken);
+    }
+
+    private async Task<SessionDataModel> LoadProfileAsync(string accessToken, CancellationToken cancellationToken)
+    {
+        // This client has no session handler; LoadAsync already holds gate.
+        using var client = factory.CreateClient("ComunioAuth");
+        using var request = new HttpRequestMessage(HttpMethod.Get, string.Empty);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        using var response = await ComunioHttp.SendAsync(client, request, text, cancellationToken);
+
+        ComunioHttp.EnsureSuccess(response, text);
+        return ComunioHttp.Deserialize<SessionDataModel>(await response.Content.ReadAsStringAsync(cancellationToken), text, TextKey.EmptySessionResponse);
+    }
+
+    private sealed class SessionState(TokenSession token)
+    {
+        public TokenSession Token { get; set; } = token;
+        public SessionDataModel? Data { get; set; }
+    }
 }

@@ -20,14 +20,13 @@ Los puntos negativos o no numéricos no generan movimientos de dinero.
 La API valida los permisos de las peticiones; la comprobación de administrador
 en el cliente permanece desactivada, como en la implementación actual.
 
-`ISessionManager` es singleton por instancia de cliente y guarda directamente
-un `SessionDataModel` en memoria. `AuthService.LoginAsync` carga el perfil una
+`ISessionManager` es singleton por instancia de cliente y centraliza tokens y perfil en un estado interno en memoria. `AuthService.LoginAsync` carga el perfil una
 vez antes de navegar a MainPage. Los servicios consultan la propiedad `Session`,
 sin peticiones HTTP adicionales ni carga automática. Logout, un login fallido
 o la invalidación de tokens eliminan el perfil. Renovar el access token no
 recarga el perfil. La clasificación se sigue consultando en cada operación.
 Los permisos del perfil permanecen en caché hasta iniciar otra sesión o llamar
-a `ISessionManager.Clear()`; la API sigue validando cada operación de dinero.
+a `AuthService.LogoutAsync()`; la API sigue validando cada operación de dinero.
 
 Los abonos se envían secuencialmente y no se reintentan. Ante un fallo,
 `CashOperationException.ConfirmedPayments` contiene los importes cuya respuesta

@@ -27,8 +27,10 @@ componentes y estilos Razor. Android mantiene el mínimo API 24 de Mobile.
 
 La comprobación local de administrador/líder permanece desactivada en Core,
 como estaba en los proyectos activos al revisar la migración; la API valida los
-permisos. Web conserva los tokens en memoria y requiere login al recargar. Mobile
-guarda solo el access token mediante SecureStorage; el perfil, refresh token y caducidad permanecen en memoria. Tras cerrarse el proceso se requiere login. No hay backend de sesiones multiusuario.
+permisos. Web y Mobile conservan tokens y perfil únicamente en memoria mediante
+SessionManager. Recargar Web o reiniciar el proceso de Mobile requiere login.
+Mobile elimina al arrancar el access token que guardaban versiones anteriores
+en SecureStorage; ya no persiste credenciales. No hay backend de sesiones multiusuario.
 
 El proyecto original y sus carpetas de código y compilación se han retirado de
 la raíz. La solución ya no lo referencia.
