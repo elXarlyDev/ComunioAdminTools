@@ -77,7 +77,10 @@ public sealed class CashOperationException(AppLocalization text, string userName
     : Exception(text.Format(TextKey.CashOperationError, userName), innerException), ILocalizedError
 {
     public IReadOnlyList<DineroJornadaModel> ConfirmedPayments { get; } = confirmedPayments;
+
     public TextKey ResourceKey => TextKey.CashOperationError;
+
     public object?[] Arguments => [userName];
+
     public override string Message => text.Format(ResourceKey, Arguments);
 }

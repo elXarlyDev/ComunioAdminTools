@@ -7,7 +7,9 @@ public sealed class AuthenticationRequiredException(
     : Exception(text[key], innerException), Localization.ILocalizedError
 {
     public Localization.TextKey ResourceKey => key;
+
     public object?[] Arguments => [];
+
     public override string Message => text[key];
 }
 

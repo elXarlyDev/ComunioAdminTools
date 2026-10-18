@@ -26,14 +26,26 @@
     background: #0b4d2c;
     color: white;
 }
-.session-user {
+.session-identity {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.4;
+}
+.session-user,
+.session-community {
     min-width: 0;
     margin: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 16px;
+}
+.session-user {
+    font-size: 14px;
     font-weight: 700;
+}
+.session-community {
+    font-size: 12px;
+    color: rgb(255 255 255 / 85%);
 }
 .session-header .sign-out {
     flex-shrink: 0;

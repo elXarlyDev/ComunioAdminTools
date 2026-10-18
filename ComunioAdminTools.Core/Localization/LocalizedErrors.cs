@@ -12,7 +12,9 @@ public sealed class LocalizedInvalidOperationException(AppLocalization text, Tex
     : InvalidOperationException(text[key], inner), ILocalizedError
 {
     public TextKey ResourceKey => key;
+
     public object?[] Arguments => [];
+
     public override string Message => text[key];
 }
 
@@ -21,6 +23,8 @@ public sealed class LocalizedHttpRequestException(
     : HttpRequestException(text.Format(key, (int?)status), inner, status), ILocalizedError
 {
     public TextKey ResourceKey => key;
+
     public object?[] Arguments => [(int?)StatusCode];
+
     public override string Message => text.Format(key, Arguments);
 }

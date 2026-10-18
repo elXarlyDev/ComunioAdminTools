@@ -79,6 +79,12 @@ Mantener un orden uniforme de miembros para facilitar la lectura:
 6. Tipos anidados (clases, registros, estructuras y enumeraciones), al final.
 
 Aplicar el mismo criterio a las interfaces para los miembros que admitan.
+Separar con una línea en blanco las propiedades cuyos getters contengan lógica,
+tanto con cuerpo `get { ... }` como con expresión `=>`, de los miembros adyacentes.
+Aplicar también esta regla a indexadores y propiedades RenderFragment, incluidos
+los bloques `@code` de Razor. Las propiedades automáticas relacionadas pueden
+permanecer agrupadas sin líneas en blanco entre ellas.
+
 Ordenar los `using` con System primero, dependencias externas después y espacios
 de nombres del proyecto al final; ordenar alfabéticamente dentro de cada grupo.
 Esta es la convención del repositorio; no existe un único orden universal de
