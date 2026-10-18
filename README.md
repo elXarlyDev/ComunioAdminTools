@@ -21,8 +21,9 @@ los fallos parciales muestran los importes confirmados.
 
 Mobile conserva la clave y el alias de firma, identificador Android, versiones,
 icono, splash, colores y fuentes originales. La categoría MacCatalyst también se
-conserva. El botón Atrás cierra el diálogo de resultados; abandonar la pantalla
-también lo cierra. Los estilos XAML y controles del original se sustituyen por
+conserva. Los resultados se muestran dentro de cada pestaña y se retiran con
+Ocultar; no hay diálogos de resultados que intercepten el botón Atrás.
+Los estilos XAML y controles del original se sustituyen por
 componentes y estilos Razor. Android mantiene el mínimo API 24 de Mobile.
 
 La comprobación local de administrador/líder permanece desactivada en Core,
@@ -116,6 +117,19 @@ entre Web y Mobile y el idioma elegido se conserva al cambiar de pantalla.
 MainPage incluye la pestaña de dinero únicamente si el usuario de la sesión es
 administrador o líder (`IsAdmin` o `IsLeader`). Las consultas están disponibles
 para todos los usuarios con sesión.
+Los resultados y errores de Dinero se muestran dentro de su pestaña. Los botones
+Abonar jornada y Abonar parón comparten una fila; Revertir abono aparece debajo
+del resultado de una jornada abonada correctamente con importes positivos, y
+desaparece al revertir o ejecutar otro abono. Los fallos parciales muestran los
+importes confirmados, sin ofrecer una reversión completa de la jornada.
+Consultas usa los botones Últimos puntos y Exceso plantilla, en una fila compacta.
+Sus resultados, estados vacíos y errores aparecen en la misma pestaña, con Ocultar
+alineado a la derecha. Cada pestaña conserva sus resultados de forma independiente.
+El botón Clasificaciones permite consultar Mes, Primera mitad o Segunda mitad.
+Al abrirlo se consulta el mes actual; al cambiar el periodo o mes se actualizan
+los resultados. Los meses disponibles van de agosto de la temporada al mes actual,
+ambos incluidos, mostrando su año. En agosto comienza una nueva lista de temporada.
+Las clasificaciones muestran los puntos totales del periodo en orden descendente.
 
 ## Generar la APK
 
@@ -140,6 +154,7 @@ dotnet run --project Tests/LocalizationChecks/LocalizationChecks.csproj
 
 Las comprobaciones de migración usan una API simulada. Cubren las cinco operaciones,
 fallos parciales sin reintentos, caché del perfil, logout, renovación concurrente,
-aislamiento de clientes y cierre de resultados. La instalación y firma final de la
+aislamiento de clientes. Las comprobaciones de interfaz e idiomas cubren los
+resultados integrados y su ocultación en ambas pestañas. La instalación y firma final de la
 APK, el uso real de Comunio, iOS/MacCatalyst y el despliegue PWA requieren su
 verificación en los entornos correspondientes.

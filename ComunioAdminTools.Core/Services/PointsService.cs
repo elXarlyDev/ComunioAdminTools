@@ -1,12 +1,15 @@
 using ComunioAdminTools.Core.Authentication;
-using ComunioAdminTools.Core.Models;
 using ComunioAdminTools.Core.Localization;
+using ComunioAdminTools.Core.Models;
 
 namespace ComunioAdminTools.Core.Services;
 
 public interface IPointsService
 {
-    public Task<IReadOnlyList<PuntosJornadaModel>> GetLastRoundPointsAsync();
+    Task<IReadOnlyList<PuntosJornadaModel>> GetLastRoundPointsAsync();
+    Task<StandingsModel> GetMonthlyStandingsAsync(int year, int month);
+    Task<StandingsModel> GetFirstHalfStandingsAsync();
+    Task<StandingsModel> GetSecondHalfStandingsAsync();
 }
 
 public sealed class PointsService(IHttpClientFactory factory, ISessionManager sessionManager, AppLocalization text) : CommunityService(factory, sessionManager, text), IPointsService
@@ -20,4 +23,19 @@ public sealed class PointsService(IHttpClientFactory factory, ISessionManager se
             Points = int.TryParse(team.LastPoints, out var points) ? points : 0
         }).OrderByDescending(item => item.Points).ToList();
     }
+
+    public Task<StandingsModel> GetMonthlyStandingsAsync(int year, int month)
+    {
+        _ = new DateOnly(year, month, 1);
+        return GetPeriodStandingsAsync(FormattableString.Invariant($"period=month&year={year}&month={month}"));
+    }
+
+    public Task<StandingsModel> GetFirstHalfStandingsAsync()
+        => GetPeriodStandingsAsync("period=firstHalf&wpe=true");
+
+    public Task<StandingsModel> GetSecondHalfStandingsAsync()
+        => GetPeriodStandingsAsync("period=secondHalf&wpe=true");
+
+    private Task<StandingsModel> GetPeriodStandingsAsync(string query)
+        => GetAsync<StandingsModel>($"communities/{Uri.EscapeDataString(Session.Community.Id)}/standings?{query}");
 }

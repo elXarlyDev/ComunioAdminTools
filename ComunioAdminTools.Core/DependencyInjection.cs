@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddTransient<ComunioAuthHandler>();
         services.AddTransient<CashService>();
         services.AddTransient<PointsService>();
+        services.AddTransient<IPointsService>(provider => provider.GetRequiredService<PointsService>());
         services.AddTransient<SquadService>();
         services.AddHttpClient("ComunioAuth", client =>
         {

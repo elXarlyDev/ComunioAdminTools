@@ -11,7 +11,7 @@ Los servicios concretos usan esos métodos heredados, sin inyectarse entre sí.
 | --- | --- |
 | `CommunityService` | Base abstracta para obtener la sesión y consultar la clasificación de la comunidad. |
 | `CashService` | Abonar dinero por puntos, revertir esos abonos y abonar 5 millones por el parón de selecciones. |
-| `PointsService` | Consultar y ordenar los puntos de la última jornada. |
+| `PointsService` | Consultar los puntos de la última jornada y las clasificaciones mensuales o por mitades. |
 | `SquadService` | Consultar las plantillas y devolver las que superan los 25 jugadores. |
 
 Las operaciones conservan las reglas de la aplicación original: 100.000 por punto

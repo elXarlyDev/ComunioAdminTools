@@ -5,7 +5,6 @@ using ComunioAdminTools.Core.Authentication;
 using ComunioAdminTools.Core.Localization;
 using ComunioAdminTools.Core.Models;
 using ComunioAdminTools.Core.Services;
-using ComunioAdminTools.UI;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 
@@ -26,6 +25,21 @@ static async Task CheckSessionClearedAsync(ISessionManager session, string messa
     {
         Check(ex.ResourceKey == TextKey.SignInRequired, message);
     }
+}
+
+foreach (var (today, expectedStart, expectedCount) in new[]
+{
+    (new DateOnly(2026, 10, 18), new DateOnly(2026, 8, 1), 3),
+    (new DateOnly(2027, 1, 10), new DateOnly(2026, 8, 1), 6),
+    (new DateOnly(2027, 8, 20), new DateOnly(2027, 8, 1), 1),
+    (new DateOnly(2027, 7, 31), new DateOnly(2026, 8, 1), 12)
+})
+{
+    var months = SeasonCalendar.GetMonths(today);
+    Check(months.Count == expectedCount && months[0] == expectedStart
+        && months[^1] == new DateOnly(today.Year, today.Month, 1)
+        && months.SequenceEqual(Enumerable.Range(0, expectedCount).Select(expectedStart.AddMonths)),
+        "Los meses de temporada van de agosto al mes actual, incluidos y sin saltos.");
 }
 
 var api = new FakeApi();
@@ -54,6 +68,16 @@ Check(points.Select(x => x.Points).SequenceEqual([250, 50, 0, -3]), "Consulta y 
 var excess = await provider.GetRequiredService<SquadService>().GetSquadExcessAsync();
 Check(excess.Count == 1 && excess[0].UserName == "A" && excess[0].PlayerCount == 26, "Limite estricto de 25 jugadores.");
 Check(api.Payments.Count == 0 && api.ProfileRequests == 1, "Consultas sin pagos y reutilizacion del perfil.");
+var pointsService = provider.GetRequiredService<IPointsService>();
+await pointsService.GetMonthlyStandingsAsync(2026, 8);
+Check(api.LastStandingsQuery == "?period=month&year=2026&month=8", "Clasificacion mensual con year y month, sin wpe.");
+await pointsService.GetMonthlyStandingsAsync(2027, 1);
+Check(api.LastStandingsQuery == "?period=month&year=2027&month=1", "La consulta mensual conserva el año del mes seleccionado.");
+await pointsService.GetFirstHalfStandingsAsync();
+Check(api.LastStandingsQuery == "?period=firstHalf&wpe=true", "Clasificacion de primera mitad.");
+await pointsService.GetSecondHalfStandingsAsync();
+Check(api.LastStandingsQuery == "?period=secondHalf&wpe=true", "Clasificacion de segunda mitad.");
+Check(api.Payments.Count == 0 && api.ProfileRequests == 1, "Clasificaciones sin pagos ni recarga del perfil.");
 api.FailAtPayment = 3;
 try
 {
@@ -173,16 +197,11 @@ restartedServices.AddComunioCore();
 using var restartedClient = restartedServices.BuildServiceProvider();
 await CheckSessionClearedAsync(restartedClient.GetRequiredService<ISessionManager>(),
     "Un proceso nuevo exige login y no dispone de los tokens de otra instancia.");
-var dialog = new ResultsDialogController();
-var closed = 0;
-dialog.CloseRequested += () => closed++;
-Check(!dialog.TryClose(), "Atras sin dialogo no se consume.");
-dialog.Open();
-Check(dialog.TryClose() && !dialog.IsOpen && closed == 1 && !dialog.TryClose(), "Atras cierra resultados una sola vez.");
 Console.WriteLine("Comprobaciones de migracion correctas; sin peticiones reales a Comunio.");
 
 sealed class FakeApi : HttpMessageHandler
 {
+    public string? LastStandingsQuery { get; private set; }
     public List<PostCashRequestModel> Payments { get; } = [];
     public int ProfileRequests { get; private set; }
     public int TokenRequests { get; private set; }
@@ -218,7 +237,10 @@ sealed class FakeApi : HttpMessageHandler
             response = new { user = new { id = "admin", name = "Admin", isAdmin = true }, community = new { id = "community" } };
         }
         else if (path.EndsWith("/standings"))
+        {
+            LastStandingsQuery = request.RequestUri.Query;
             response = new { items = new[] { ("A", "250"), ("B", "50"), ("C", "-3"), ("D", "invalid") }.Select(x => new { lastPoints = x.Item2, _embedded = new { user = new { id = x.Item1, name = x.Item1 } } }) };
+        }
         else if (path.EndsWith("/squad"))
             response = new { items = Enumerable.Range(0, path.Contains("/A/") ? 26 : 25).Select(x => new { id = x }) };
         else if (path.EndsWith("/penalties"))

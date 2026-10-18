@@ -18,7 +18,6 @@ namespace ComunioAdminTools.Mobile
                 });
 
             builder.Services.AddMauiBlazorWebView();
-            builder.Services.AddSingleton<ComunioAdminTools.UI.ResultsDialogController>();
             builder.Services.AddComunioCore();
 
 #if DEBUG

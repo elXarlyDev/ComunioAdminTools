@@ -21,13 +21,14 @@
   <data name="Sections" xml:space="preserve"><value>Secciones</value></data>
   <data name="Money" xml:space="preserve"><value>Dinero</value></data>
   <data name="Queries" xml:space="preserve"><value>Consultas</value></data>
-  <data name="PayPoints" xml:space="preserve"><value>Abonar dinero por puntos</value></data>
-  <data name="RevertPoints" xml:space="preserve"><value>Revertir dinero de los puntos</value></data>
-  <data name="PayBreak" xml:space="preserve"><value>Abonar parón de selecciones</value></data>
-  <data name="QueryPoints" xml:space="preserve"><value>Consultar puntos de la última jornada</value></data>
-  <data name="QuerySquads" xml:space="preserve"><value>Comprobar exceso de plantilla</value></data>
+  <data name="PayPoints" xml:space="preserve"><value>Abonar jornada</value></data>
+  <data name="RevertPoints" xml:space="preserve"><value>Revertir abono</value></data>
+  <data name="PayBreak" xml:space="preserve"><value>Abonar parón</value></data>
+  <data name="QueryPoints" xml:space="preserve"><value>Últimos puntos</value></data>
+  <data name="QuerySquads" xml:space="preserve"><value>Exceso plantilla</value></data>
   <data name="Loading" xml:space="preserve"><value>Cargando…</value></data>
   <data name="Close" xml:space="preserve"><value>Cerrar</value></data>
+  <data name="Hide" xml:space="preserve"><value>Ocultar</value></data>
   <data name="Results" xml:space="preserve"><value>Resultados</value></data>
   <data name="NoResults" xml:space="preserve"><value>No hay resultados.</value></data>
   <data name="PaidMoney" xml:space="preserve"><value>Dinero abonado</value></data>
@@ -73,4 +74,9 @@
   <data name="UnhandledError" xml:space="preserve"><value>Se ha producido un error inesperado.</value></data>
   <data name="Reload" xml:space="preserve"><value>Recargar</value></data>
   <data name="LibraryComponent" xml:space="preserve"><value>Este componente pertenece a la biblioteca {0}.</value></data>
+  <data name="Standings" xml:space="preserve"><value>Clasificaciones</value></data>
+  <data name="StandingsPeriod" xml:space="preserve"><value>Tipo de clasificación</value></data>
+  <data name="Month" xml:space="preserve"><value>Mes</value></data>
+  <data name="FirstHalf" xml:space="preserve"><value>Primera mitad</value></data>
+  <data name="SecondHalf" xml:space="preserve"><value>Segunda mitad</value></data>
 </root>
