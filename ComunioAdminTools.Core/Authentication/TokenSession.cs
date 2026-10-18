@@ -4,30 +4,26 @@ public sealed record TokenSession(string AccessToken, string? RefreshToken, Date
 
 public interface ITokenStore
 {
-    Task<TokenSession?> ReadAsync(CancellationToken cancellationToken = default);
-    Task WriteAsync(TokenSession? session, CancellationToken cancellationToken = default);
+    Task SetTokenAsync(string? token);
+    Task<string?> GetTokenAsync();
 }
 
 public sealed class MemoryTokenStore : ITokenStore
 {
-    private TokenSession? session;
-    public Task<TokenSession?> ReadAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult(session);
-    public Task WriteAsync(TokenSession? value, CancellationToken cancellationToken = default)
+    private string? token;
+
+    public Task SetTokenAsync(string? token)
     {
-        session = value;
+        this.token = token;
         return Task.CompletedTask;
     }
-}
 
-public interface IAccessTokenProvider
-{
-    Task<string> GetValidAccessTokenAsync(CancellationToken cancellationToken = default);
+    public Task<string?> GetTokenAsync() => Task.FromResult(token);
 }
 
 public sealed class AuthenticationRequiredException(
-    Localization.AppLocalization text, Localization.TextKey key)
-    : Exception(text[key]), Localization.ILocalizedError
+    Localization.AppLocalization text, Localization.TextKey key, Exception? innerException = null)
+    : Exception(text[key], innerException), Localization.ILocalizedError
 {
     public Localization.TextKey ResourceKey => key;
     public object?[] Arguments => [];

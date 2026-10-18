@@ -17,8 +17,8 @@ public static class DependencyInjection
         services.TryAddSingleton<ITokenStore, MemoryTokenStore>();
         services.AddSingleton<ISessionManager, SessionManager>();
         services.AddSingleton<AuthService>();
-        services.AddSingleton<IAccessTokenProvider>(sp => sp.GetRequiredService<AuthService>());
         services.AddTransient<ComunioAuthHandler>();
+        services.AddTransient<SessionRefreshHandler>();
         services.AddTransient<CashService>();
         services.AddTransient<PointsService>();
         services.AddTransient<SquadService>();
@@ -29,7 +29,8 @@ public static class DependencyInjection
         services.AddHttpClient("Comunio", client =>
         {
             client.BaseAddress = new Uri("https://api.comunio.es/");
-        }).AddHttpMessageHandler<ComunioAuthHandler>();
+        }).AddHttpMessageHandler<SessionRefreshHandler>()
+          .AddHttpMessageHandler<ComunioAuthHandler>();
 
         return services;
     }

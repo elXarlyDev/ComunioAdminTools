@@ -28,7 +28,7 @@ componentes y estilos Razor. Android mantiene el mínimo API 24 de Mobile.
 La comprobación local de administrador/líder permanece desactivada en Core,
 como estaba en los proyectos activos al revisar la migración; la API valida los
 permisos. Web conserva los tokens en memoria y requiere login al recargar. Mobile
-los guarda mediante SecureStorage. No hay backend de sesiones multiusuario.
+guarda solo el access token mediante SecureStorage; el perfil, refresh token y caducidad permanecen en memoria. Tras cerrarse el proceso se requiere login. No hay backend de sesiones multiusuario.
 
 El proyecto original y sus carpetas de código y compilación se han retirado de
 la raíz. La solución ya no lo referencia.
@@ -105,8 +105,10 @@ y ejecutar las comprobaciones de idiomas.
 
 La pantalla de login reúne usuario, contraseña, inicio de sesión y selector de
 idioma. El nombre `Comunio Admin Tools` permanece igual en ambos idiomas.
-Tras un login correcto, la vista cambia a las cinco operaciones; cerrar sesión
-desde la esquina superior derecha vuelve al login y borra las credenciales.
+Al abrir la app se muestra LoginPage (ruta /). Tras un login correcto se navega
+a MainPage (ruta /main), que contiene las cinco operaciones. Cerrar sesión desde
+la esquina superior derecha vuelve a LoginPage. Acceder a /main sin sesión
+también redirige al login. Las rutas se resuelven desde la biblioteca UI compartida.
 Un acceso rechazado conserva la pantalla de login. Las pantallas se comparten
 entre Web y Mobile y el idioma elegido se conserva al cambiar de pantalla.
 

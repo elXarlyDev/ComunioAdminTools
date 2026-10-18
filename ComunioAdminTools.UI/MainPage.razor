@@ -1,23 +1,24 @@
+@page "/main"
+@using ComunioAdminTools.Core.Authentication
+@using ComunioAdminTools.Core.Models
+@using ComunioAdminTools.Core.Services
 @inherits LocalizedComponentBase
+@inject NavigationManager Navigation
+@inject AuthService Auth
+@inject ISessionManager Session
+@inject CashService Cash
+@inject PointsService Points
+@inject SquadService Squads
+@inject ResultsDialogController Dialog
+@implements IDisposable
 
-<main class="admin-page" aria-busy="@(IsLoading ? "true" : "false")">
-    @if (HasSession)
-    {
-        <header class="session-header" inert="@(IsLoading || ResultsContent is not null)">
-            <p class="session-user" title="@SessionUsername">@SessionUsername</p>
-            <button type="button" class="action-button sign-out" disabled="@(IsLoading || !OnLogout.HasDelegate)"
-                    @onclick="OnLogout">@Text[TextKey.SignOut]</button>
-        </header>
-    }
-    <div class="main-content" inert="@(IsLoading || ResultsContent is not null)">
-        @if (!HasSession)
-        {
-            <LoginScreen Username="@Username" UsernameChanged="SetUsernameAsync"
-                         Password="@Password" PasswordChanged="SetPasswordAsync"
-                         IsLoading="IsLoading" OnLogin="OnLogin" />
-        }
-        else
-        {
+<main class="admin-page" aria-busy="@(busy ? "true" : "false")">
+    <header class="session-header" inert="@(busy || resultsOpen)">
+        <p class="session-user" title="@sessionUsername">@sessionUsername</p>
+        <button type="button" class="action-button sign-out" disabled="@(busy)"
+                @onclick="LogoutAsync">@Text[TextKey.SignOut]</button>
+    </header>
+    <div class="main-content" inert="@(busy || resultsOpen)">
         <section class="actions" aria-label="@Text[TextKey.AdminTools]">
             <div class="tabs" aria-label="@Text[TextKey.Sections]">
                 <button type="button" class="@(dinersSelected ? "selected" : null)"
@@ -30,34 +31,33 @@
 
             <div class="action-panel" hidden="@(!dinersSelected)">
                 <button type="button" class="action-button points"
-                        disabled="@(IsLoading || !OnSetPointsCash.HasDelegate)" @onclick="OnSetPointsCash">
+                        disabled="@(busy)" @onclick="PayRoundPointsAsync">
                     @Text[TextKey.PayPoints]
                 </button>
                 <button type="button" class="action-button revert"
-                        disabled="@(IsLoading || !OnRevertPointsCash.HasDelegate)" @onclick="OnRevertPointsCash">
+                        disabled="@(busy)" @onclick="RevertRoundPointsAsync">
                     @Text[TextKey.RevertPoints]
                 </button>
                 <button type="button" class="action-button bonus"
-                        disabled="@(IsLoading || !OnAddFiveMillionCash.HasDelegate)" @onclick="OnAddFiveMillionCash">
+                        disabled="@(busy)" @onclick="PayInternationalBreakAsync">
                     @Text[TextKey.PayBreak]
                 </button>
             </div>
 
             <div class="action-panel" hidden="@dinersSelected">
                 <button type="button" class="action-button query"
-                        disabled="@(IsLoading || !OnShowTeamsLastPoints.HasDelegate)" @onclick="OnShowTeamsLastPoints">
+                        disabled="@(busy)" @onclick="ShowPointsAsync">
                     @Text[TextKey.QueryPoints]
                 </button>
                 <button type="button" class="action-button query"
-                        disabled="@(IsLoading || !OnCheckSquadExcess.HasDelegate)" @onclick="OnCheckSquadExcess">
+                        disabled="@(busy)" @onclick="ShowSquadExcessAsync">
                     @Text[TextKey.QuerySquads]
                 </button>
             </div>
         </section>
-        }
     </div>
 
-    @if (IsLoading)
+    @if (busy)
     {
         <div class="overlay">
             <div class="loading-card" role="status" aria-live="polite">
@@ -67,50 +67,181 @@
         </div>
     }
 
-    @if (ResultsContent is not null)
+    @if (resultsOpen)
     {
         <div class="overlay">
-            <section class="results-card" role="dialog" aria-label="@(ResultsTitle ?? Text[TextKey.Results])" aria-modal="true">
-                <h2>@(ResultsTitle ?? Text[TextKey.Results])</h2>
-                <div class="results-body">@ResultsContent</div>
-                <button type="button" class="action-button points" disabled="@(!OnCloseResults.HasDelegate)"
-                        @onclick="OnCloseResults">@Text[TextKey.Close]</button>
+            <section class="results-card" role="dialog" aria-label="@Text[titleKey]" aria-modal="true">
+                <h2>@Text[titleKey]</h2>
+                <div class="results-body">@ResultContent</div>
+                <button type="button" class="action-button points" @onclick="CloseResults">@Text[TextKey.Close]</button>
             </section>
         </div>
     }
 </main>
 
 @code {
-    // Presentation only. AdminPage connects these callbacks to Core services.
     private bool dinersSelected = true;
+    private string sessionUsername = "";
+    private bool hasSession;
+    private bool busy = true;
+    private bool resultsOpen;
+    private bool cashResults;
+    private TextKey titleKey = TextKey.Results;
+    private TextKey headingKey = TextKey.Amount;
+    private TextKey? messageKey;
+    private Exception? error;
+    private IReadOnlyList<(string Name, int Value)> values = [];
 
-    [Parameter] public string Username { get; set; } = "";
-    [Parameter] public string SessionUsername { get; set; } = "";
-    [Parameter] public EventCallback<string> UsernameChanged { get; set; }
-    [Parameter] public string Password { get; set; } = "";
-    [Parameter] public EventCallback<string> PasswordChanged { get; set; }
-    [Parameter] public bool IsLoading { get; set; }
-    [Parameter] public bool HasSession { get; set; }
-    [Parameter] public EventCallback OnLogin { get; set; }
-    [Parameter] public EventCallback OnLogout { get; set; }
-    [Parameter] public EventCallback OnSetPointsCash { get; set; }
-    [Parameter] public EventCallback OnRevertPointsCash { get; set; }
-    [Parameter] public EventCallback OnAddFiveMillionCash { get; set; }
-    [Parameter] public EventCallback OnShowTeamsLastPoints { get; set; }
-    [Parameter] public EventCallback OnCheckSquadExcess { get; set; }
-    [Parameter] public string? ResultsTitle { get; set; }
-    [Parameter] public RenderFragment? ResultsContent { get; set; }
-    [Parameter] public EventCallback OnCloseResults { get; set; }
+    private string? Message => error is not null ? Text.ErrorMessage(error)
+        : messageKey is { } key ? Text[key] : null;
+    private IReadOnlyList<(string Name, string Value)> Rows => values.Select(row =>
+        (row.Name, cashResults ? row.Value.ToString("C0", Text.Culture)
+            : row.Value.ToString("N0", Text.Culture))).ToArray();
+    private RenderFragment ResultContent => @<ActionResults Rows="Rows" ValueHeading="@Text[headingKey]" Message="@Message" />;
 
-    private async Task SetUsernameAsync(string value)
+    protected override async Task OnInitializedAsync()
     {
-        Username = value;
-        await UsernameChanged.InvokeAsync(value);
+        Dialog.CloseRequested += OnCloseRequested;
+        Session.SessionChanged += OnSessionChanged;
+        try { await UpdateSessionAsync(); }
+        catch { ShowMessage(TextKey.RestoreSessionError); }
+        finally { busy = false; }
     }
 
-    private async Task SetPasswordAsync(string value)
+    private async Task UpdateSessionAsync()
     {
-        Password = value;
-        await PasswordChanged.InvokeAsync(value);
+        if (Session.Session is null || !await Session.HasSessionAsync())
+        {
+            hasSession = false;
+            sessionUsername = "";
+            Navigation.NavigateTo("", replace: true);
+            return;
+        }
+        var profile = Session.Session;
+        sessionUsername = !string.IsNullOrWhiteSpace(profile.User.Name) ? profile.User.Name
+            : !string.IsNullOrWhiteSpace(profile.User.FirstName) ? profile.User.FirstName : "";
+        hasSession = true;
+    }
+
+    private async Task EnsureSessionAsync()
+    {
+        if (Session.Session is null || !await Session.HasSessionAsync())
+        {
+            hasSession = false;
+            Navigation.NavigateTo("", replace: true);
+            throw new AuthenticationRequiredException(Text, TextKey.SignInRequired);
+        }
+        hasSession = true;
+    }
+
+    private Task LogoutAsync() => RunAsync(async () =>
+    {
+        await Auth.LogoutAsync();
+        hasSession = false;
+        sessionUsername = "";
+        Navigation.NavigateTo("", replace: true);
+    }, requiresSession: false);
+
+    private Task PayRoundPointsAsync() => RunAsync(async () =>
+        ShowCash(TextKey.PaidMoney, await Cash.PayRoundPointsAsync()));
+
+    private Task RevertRoundPointsAsync() => RunAsync(async () =>
+        ShowCash(TextKey.RevertedMoney, await Cash.RevertRoundPointsAsync()));
+
+    private Task PayInternationalBreakAsync() => RunAsync(async () =>
+        ShowCash(TextKey.PaymentCompleted, await Cash.PayInternationalBreakAsync(), TextKey.BreakPaymentCompleted));
+
+    private Task ShowPointsAsync() => RunAsync(async () =>
+    {
+        var result = await Points.GetLastRoundPointsAsync();
+        ShowRows(TextKey.LastRoundPoints, TextKey.Points, result.Select(x => (x.UserName, x.Points)).ToArray());
+    });
+
+    private Task ShowSquadExcessAsync() => RunAsync(async () =>
+    {
+        var result = await Squads.GetSquadExcessAsync();
+        ShowRows(TextKey.SquadExcess, TextKey.Players, result.Select(x => (x.UserName, x.PlayerCount)).ToArray());
+    });
+
+    private async Task RunAsync(Func<Task> action, bool requiresSession = true)
+    {
+        if (busy || resultsOpen) return;
+        busy = true;
+        try
+        {
+            if (requiresSession) await EnsureSessionAsync();
+            await action();
+        }
+        catch (CashOperationException ex)
+        {
+            ShowCash(TextKey.IncompleteOperation, ex.ConfirmedPayments);
+            error = ex;
+        }
+        catch (Exception ex)
+        {
+            ShowRows(TextKey.Error, TextKey.Amount, []);
+            error = ex;
+        }
+        finally
+        {
+            try { await UpdateSessionAsync(); }
+            catch { hasSession = false; sessionUsername = ""; }
+            busy = false;
+        }
+    }
+
+    private void ShowCash(TextKey title, IReadOnlyList<DineroJornadaModel> result, TextKey? message = null)
+    {
+        ShowRows(title, TextKey.Amount, result.Select(x => (x.UserName, x.Amount)).ToArray(), message);
+        cashResults = true;
+    }
+
+    private void ShowRows(TextKey title, TextKey heading, IReadOnlyList<(string Name, int Value)> result, TextKey? message = null)
+    {
+        titleKey = title;
+        headingKey = heading;
+        values = result;
+        messageKey = message;
+        error = null;
+        cashResults = false;
+        resultsOpen = true;
+        Dialog.Open();
+    }
+
+    private void ShowMessage(TextKey message) => ShowRows(TextKey.Error, TextKey.Amount, [], message);
+
+    private void ClearResults()
+    {
+        resultsOpen = false;
+        values = [];
+        messageKey = null;
+        error = null;
+    }
+
+    private void CloseResults()
+    {
+        Dialog.TryClose();
+        ClearResults();
+    }
+
+    private void OnCloseRequested() => _ = InvokeAsync(() =>
+    {
+        ClearResults();
+        StateHasChanged();
+    });
+
+    private void OnSessionChanged() => _ = InvokeAsync(async () =>
+    {
+        if (busy || !hasSession) return;
+        try { await UpdateSessionAsync(); }
+        catch { hasSession = false; sessionUsername = ""; }
+        StateHasChanged();
+    });
+
+    public void Dispose()
+    {
+        Dialog.CloseRequested -= OnCloseRequested;
+        Session.SessionChanged -= OnSessionChanged;
+        Dialog.TryClose();
     }
 }

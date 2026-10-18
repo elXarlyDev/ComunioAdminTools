@@ -1,0 +1,69 @@
+@page "/"
+@using ComunioAdminTools.Core.Authentication
+@inherits LocalizedComponentBase
+@inject NavigationManager Navigation
+@inject AuthService Auth
+
+<PageTitle>Comunio Admin Tools</PageTitle>
+
+<main class="login-page">
+    <div class="login-content">
+        <section class="login-screen" aria-label="@Text[TextKey.SignInTitle]">
+            <header class="brand">
+                <h1>Comunio</h1>
+                <p>Admin Tools</p>
+            </header>
+            <form @onsubmit="LoginAsync" @onsubmit:preventDefault aria-busy="@(busy ? "true" : "false")">
+                <label class="credential">
+                    <span>@Text[TextKey.Username]</span>
+                    <input type="text" placeholder="@Text[TextKey.UsernamePlaceholder]" autocomplete="username"
+                           autocapitalize="none" spellcheck="false" disabled="@busy"
+                           @bind="username" />
+                </label>
+                <label class="credential">
+                    <span>@Text[TextKey.Password]</span>
+                    <input type="password" placeholder="@Text[TextKey.PasswordPlaceholder]" autocomplete="current-password"
+                           disabled="@busy" @bind="password" />
+                </label>
+                <button type="submit" class="action-button points" disabled="@busy">
+                    @Text[busy ? TextKey.Connecting : TextKey.SignIn]
+                </button>
+            </form>
+            @if (loginFailed)
+            {
+                <p role="alert">@Text[TextKey.SignInError]</p>
+            }
+            <LanguagePicker Disabled="@busy" />
+        </section>
+    </div>
+</main>
+
+@code {
+    private string username = "";
+    private string password = "";
+    private bool busy;
+    private bool loginFailed;
+
+    private async Task LoginAsync()
+    {
+        if (busy) return;
+        busy = true;
+        loginFailed = false;
+        try
+        {
+            await Auth.LoginAsync(username, password);
+        }
+        catch
+        {
+            loginFailed = true;
+            return;
+        }
+        finally
+        {
+            password = "";
+            busy = false;
+        }
+
+        Navigation.NavigateTo("main", replace: true);
+    }
+}

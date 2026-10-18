@@ -1,42 +1,29 @@
 using ComunioAdminTools.Core.Authentication;
-using Newtonsoft.Json;
 using ComunioAdminTools.Core.Localization;
 
 namespace ComunioAdminTools.Mobile.Authentication;
 
 public sealed class SecureTokenStore(AppLocalization text) : ITokenStore
 {
-    private const string Key = "comunio.session.v1";
+    private const string Key = "comunio.access-token.v1";
 
-    public async Task<TokenSession?> ReadAsync(CancellationToken cancellationToken = default)
+    public async Task<string?> GetTokenAsync()
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        try
-        {
-            var json = await SecureStorage.Default.GetAsync(Key);
-            if (json is null) return null;
-            try { return JsonConvert.DeserializeObject<TokenSession>(json); }
-            catch (JsonException)
-            {
-                SecureStorage.Default.Remove(Key);
-                return null;
-            }
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        try { return await SecureStorage.Default.GetAsync(Key); }
+        catch (Exception ex)
         {
             throw new LocalizedInvalidOperationException(text, TextKey.ReadTokenStoreError, ex);
         }
     }
 
-    public async Task WriteAsync(TokenSession? session, CancellationToken cancellationToken = default)
+    public async Task SetTokenAsync(string? token)
     {
-        cancellationToken.ThrowIfCancellationRequested();
         try
         {
-            if (session is null) SecureStorage.Default.Remove(Key);
-            else await SecureStorage.Default.SetAsync(Key, JsonConvert.SerializeObject(session));
+            if (token is null) SecureStorage.Default.Remove(Key);
+            else await SecureStorage.Default.SetAsync(Key, token);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex)
         {
             throw new LocalizedInvalidOperationException(text, TextKey.WriteTokenStoreError, ex);
         }

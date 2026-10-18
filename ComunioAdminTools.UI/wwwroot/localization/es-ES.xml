@@ -44,7 +44,7 @@
   <data name="RestoreSessionError" xml:space="preserve"><value>No se ha podido recuperar la sesión guardada.</value></data>
   <data name="CredentialsRequired" xml:space="preserve"><value>Introduce usuario y contraseña para iniciar sesión.</value></data>
   <data name="OperationError" xml:space="preserve"><value>No se ha podido completar la operación. Comprueba la conexión y la sesión.</value></data>
-  <data name="SignInError" xml:space="preserve"><value>No se ha podido iniciar sesión. Comprueba los datos y la conexión.</value></data>
+  <data name="SignInError" xml:space="preserve"><value>No ha sido posible iniciar sesión. Revisa las credenciales introducidas</value></data>
   <data name="SignOutError" xml:space="preserve"><value>No se ha podido cerrar la sesión.</value></data>
   <data name="SignInRequired" xml:space="preserve"><value>Inicia sesión para continuar.</value></data>
   <data name="SessionExpired" xml:space="preserve"><value>La sesión ha caducado. Inicia sesión de nuevo.</value></data>

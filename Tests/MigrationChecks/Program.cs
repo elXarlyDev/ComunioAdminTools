@@ -50,22 +50,51 @@ catch (CashOperationException ex)
     Check(ex.ConfirmedPayments.Single().Amount == 20_000_000 && api.PaymentAttempts == 3, "Conservar bloques confirmados, detenerse y no reintentar.");
 }
 await auth.LogoutAsync();
-Check(!await auth.HasSessionAsync(), "Logout elimina la sesion.");
+Check(!await provider.GetRequiredService<ISessionManager>().HasSessionAsync(), "Logout elimina la sesion.");
+Check(provider.GetRequiredService<ISessionManager>().Session is null, "Logout borra el perfil en memoria.");
+api.FailProfile = true;
+try
+{
+    await auth.LoginAsync("user", "password");
+    throw new Exception("Se esperaba un fallo al cargar el perfil.");
+}
+catch (AuthenticationRequiredException)
+{
+    Check(!await provider.GetRequiredService<ISessionManager>().HasSessionAsync(), "Un login fallido limpia la sesion en memoria.");
+    Check(await provider.GetRequiredService<ITokenStore>().GetTokenAsync() is null,
+        "Un login fallido elimina los tokens guardados.");
+}
+api.FailProfile = false;
+await auth.LoginAsync("user", "password");
+Check(provider.GetRequiredService<ISessionManager>().Session!.User.Name == "Admin",
+    "Se puede volver a iniciar sesion tras un fallo de perfil.");
+await auth.LogoutAsync();
 using var otherClient = services.BuildServiceProvider();
 Check(!ReferenceEquals(provider.GetRequiredService<ISessionManager>(), otherClient.GetRequiredService<ISessionManager>()), "Sesiones aisladas por cliente.");
 var restoredServices = new ServiceCollection();
 var restoredApi = new FakeApi();
-var tokenStore = new MemoryTokenStore();
-await tokenStore.WriteAsync(new("expired", "refresh", DateTimeOffset.UtcNow.AddMinutes(-1)));
-restoredServices.AddSingleton<ITokenStore>(tokenStore);
 restoredServices.AddComunioCore();
 restoredServices.AddHttpClient("ComunioAuth").ConfigurePrimaryHttpMessageHandler(() => restoredApi);
 restoredServices.AddHttpClient("Comunio").ConfigurePrimaryHttpMessageHandler(() => restoredApi);
 using var restoredClient = restoredServices.BuildServiceProvider();
-var restoredAuth = restoredClient.GetRequiredService<AuthService>();
-var tokens = await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => restoredAuth.GetValidAccessTokenAsync()));
-Check(tokens.All(x => x == "test") && restoredApi.TokenRequests == 1, "Restauracion y renovacion concurrente unica.");
-Check((await tokenStore.ReadAsync())!.AccessToken == "test", "Persistencia de la renovacion.");
+await restoredClient.GetRequiredService<ISessionManager>().StartAsync(new("test", "refresh", DateTimeOffset.UtcNow.AddMinutes(-1)));
+using var restoredHttp = restoredClient.GetRequiredService<IHttpClientFactory>().CreateClient("Comunio");
+var responses = await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => restoredHttp.GetAsync("")));
+Check(responses.All(x => x.IsSuccessStatusCode) && restoredApi.TokenRequests == 1,
+    "El pipeline renueva una sola vez antes de enviar las peticiones concurrentes.");
+foreach (var response in responses) response.Dispose();
+Check(await restoredClient.GetRequiredService<ITokenStore>().GetTokenAsync() == "test", "El handler dispone del token renovado como string.");
+await restoredClient.GetRequiredService<ISessionManager>().LogoutAsync();
+Check(await restoredClient.GetRequiredService<ITokenStore>().GetTokenAsync() is null,
+    "Logout elimina el token del handler.");
+var leftoverToken = new MemoryTokenStore();
+await leftoverToken.SetTokenAsync("old-access-token");
+var restartedServices = new ServiceCollection();
+restartedServices.AddSingleton<ITokenStore>(leftoverToken);
+restartedServices.AddComunioCore();
+using var restartedClient = restartedServices.BuildServiceProvider();
+Check(!await restartedClient.GetRequiredService<ISessionManager>().HasSessionAsync(),
+    "Un proceso nuevo exige login aunque el almacén conserve un access token.");
 var dialog = new ResultsDialogController();
 var closed = 0;
 dialog.CloseRequested += () => closed++;
@@ -81,10 +110,13 @@ sealed class FakeApi : HttpMessageHandler
     public int TokenRequests { get; private set; }
     public int PaymentAttempts { get; private set; }
     public int? FailAtPayment { get; set; }
+    public bool FailProfile { get; set; }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var path = request.RequestUri!.AbsolutePath;
+        if (path != "/login")
+            CheckBearer(request);
         object response;
         if (path == "/login")
         {
@@ -94,6 +126,7 @@ sealed class FakeApi : HttpMessageHandler
         else if (path == "/")
         {
             ProfileRequests++;
+            if (FailProfile) return new(HttpStatusCode.ServiceUnavailable);
             response = new { user = new { id = "admin", name = "Admin", isAdmin = true }, community = new { id = "community" } };
         }
         else if (path.EndsWith("/standings"))
@@ -110,4 +143,11 @@ sealed class FakeApi : HttpMessageHandler
         else throw new Exception($"Peticion inesperada: {request.RequestUri}");
         return new(HttpStatusCode.OK) { Content = new StringContent(JsonConvert.SerializeObject(response), Encoding.UTF8, "application/json") };
     }
+
+    private static void CheckBearer(HttpRequestMessage request)
+    {
+        if (request.Headers.Authorization is not { Scheme: "Bearer", Parameter: "test" })
+            throw new Exception("La petición debe llevar el token vigente.");
+    }
 }
+

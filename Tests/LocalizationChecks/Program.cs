@@ -29,6 +29,8 @@ var originalCulture = CultureInfo.CurrentUICulture;
 var serviceCollection = new ServiceCollection();
 serviceCollection.AddLogging();
 serviceCollection.AddComunioCore();
+serviceCollection.AddSingleton<ResultsDialogController>();
+serviceCollection.AddSingleton<NavigationManager, TestNavigationManager>();
 var api = new TestApi();
 serviceCollection.AddHttpClient("ComunioAuth").ConfigurePrimaryHttpMessageHandler(() => api);
 serviceCollection.AddHttpClient("Comunio").ConfigurePrimaryHttpMessageHandler(() => api);
@@ -44,11 +46,21 @@ foreach (var language in new[] { AppLocalization.SpanishCulture, AppLocalization
     foreach (var key in Enum.GetValues<TextKey>())
         Check(!string.IsNullOrWhiteSpace(resources.GetString(key.ToString()))
             && text[key] == resources.GetString(key.ToString()), $"Missing resource {language}/{key}");
-    Check((await Capture(() => auth.LoginAsync("", ""))).Message == text[TextKey.CredentialsRequired], "Localized credential validation.");
-    await auth.LogoutAsync();
-    Check((await Capture(() => auth.GetValidAccessTokenAsync())).Message == text[TextKey.SignInRequired], "Localized session error.");
     api.LoginStatus = HttpStatusCode.Unauthorized;
-    Check((await Capture(() => auth.LoginAsync("user", "password"))).Message == text[TextKey.CredentialsRejected], "Localized authentication rejection.");
+    Check((await Capture(() => auth.LoginAsync("", ""))).Message == text[TextKey.SignInError],
+        "Empty credentials are sent to the API and use the generic login error when rejected.");
+    api.LoginStatus = HttpStatusCode.OK;
+    await auth.LogoutAsync();
+    Check((await Capture(() => services.GetRequiredService<ISessionManager>().GetValidAccessTokenAsync())).Message == text[TextKey.SignInRequired], "Localized session error.");
+    foreach (var status in new[] { HttpStatusCode.BadRequest, HttpStatusCode.Unauthorized,
+        HttpStatusCode.Forbidden, HttpStatusCode.InternalServerError, HttpStatusCode.Created,
+        HttpStatusCode.NoContent })
+    {
+        api.LoginStatus = status;
+        Check((await Capture(() => auth.LoginAsync("user", "password"))).Message == text[TextKey.SignInError],
+            "Every non-200 authentication response uses the same error.");
+        Check(!await services.GetRequiredService<ISessionManager>().HasSessionAsync(), "Rejected authentication leaves no session.");
+    }
     api.LoginStatus = HttpStatusCode.OK;
     await auth.LoginAsync("user", "password");
     foreach (var (status, key) in new[] {
@@ -80,6 +92,7 @@ foreach (var language in new[] { AppLocalization.SpanishCulture, AppLocalization
     Check(partial.Message == text.Format(TextKey.CashOperationError, "A < B"), "Localized formatted partial payment.");
 }
 
+await auth.LogoutAsync();
 text.SetCulture(AppLocalization.SpanishCulture);
 var retainedError = new AuthenticationRequiredException(text, TextKey.SessionExpired);
 await using (var renderer = new HtmlRenderer(services, services.GetRequiredService<ILoggerFactory>()))
@@ -87,15 +100,21 @@ await using (var renderer = new HtmlRenderer(services, services.GetRequiredServi
     var root = await renderer.Dispatcher.InvokeAsync(() => renderer.RenderComponentAsync<TestHost>());
     var spanishHtml = await renderer.Dispatcher.InvokeAsync(() => WebUtility.HtmlDecode(root.ToHtmlString()));
     Check(spanishHtml.Contains("Comunio</h1>") && spanishHtml.Contains("Admin Tools</p>") && !spanishHtml.Contains("class=\"actions\""), "Fixed brand and operations hidden before login.");
-    Check(spanishHtml.Contains("Usuario") && spanishHtml.Contains("Cargando") && spanishHtml.Contains("No hay resultados"), "Spanish UI and results.");
+    Check(spanishHtml.Contains("Usuario") && spanishHtml.Contains("No hay resultados"), "Spanish UI and results.");
     await renderer.Dispatcher.InvokeAsync(() => text.SetCulture(AppLocalization.ValencianCulture));
     var valencianHtml = await renderer.Dispatcher.InvokeAsync(() => WebUtility.HtmlDecode(root.ToHtmlString()));
     Check(valencianHtml.Contains("Comunio</h1>") && valencianHtml.Contains("Admin Tools</p>"), "App name is unchanged in Valencian.");
-    Check(valencianHtml.Contains("Usuari") && valencianHtml.Contains("Carregant") && valencianHtml.Contains("No hi ha resultats"), "Runtime switch updates an open results dialog.");
+    Check(valencianHtml.Contains("Usuari") && valencianHtml.Contains("No hi ha resultats"), "Runtime switch updates an open results dialog.");
     Check(!valencianHtml.Contains("Herramientas de administración") && retainedError.Message == text[TextKey.SessionExpired], "No stale translated strings.");
 }
 
 using var secondClient = serviceCollection.BuildServiceProvider();
+await using (var renderer = new HtmlRenderer(services, services.GetRequiredService<ILoggerFactory>()))
+{
+    await renderer.Dispatcher.InvokeAsync(() => renderer.RenderComponentAsync<MainPage>());
+    Check(services.GetRequiredService<NavigationManager>().Uri == "https://example.test/app/",
+        "Opening operations without a session redirects to login within the app base path.");
+}
 Check(secondClient.GetRequiredService<AppLocalization>().Culture.Name == AppLocalization.SpanishCulture, "Language is isolated per client.");
 Check(ReferenceEquals(CultureInfo.CurrentUICulture, originalCulture), "Never change process-wide culture.");
 Check(AppLocalization.NormalizeCulture("ca-ES") == AppLocalization.ValencianCulture
@@ -125,6 +144,14 @@ sealed class TestApi : HttpMessageHandler
         => new(status) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
 }
 
+sealed class TestNavigationManager : NavigationManager
+{
+    public TestNavigationManager() => Initialize("https://example.test/app/", "https://example.test/app/main");
+
+    protected override void NavigateToCore(string uri, NavigationOptions options)
+        => Uri = ToAbsoluteUri(uri).AbsoluteUri;
+}
+
 sealed class TestHost : ComponentBase, IDisposable
 {
     [Inject] public AppLocalization Text { get; set; } = default!;
@@ -139,13 +166,9 @@ sealed class TestHost : ComponentBase, IDisposable
         builder.AddAttribute(1, "Value", Text.Culture);
         builder.AddAttribute(2, "ChildContent", (RenderFragment)(content =>
         {
-            content.OpenComponent<MainPage>(0);
-            content.AddAttribute(1, "IsLoading", true);
-            content.AddAttribute(2, "ResultsContent", (RenderFragment)(results =>
-            {
-                results.OpenComponent<ActionResults>(0);
-                results.CloseComponent();
-            }));
+            content.OpenComponent<LoginPage>(0);
+            content.CloseComponent();
+            content.OpenComponent<ActionResults>(1);
             content.CloseComponent();
         }));
         builder.CloseComponent();
