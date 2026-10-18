@@ -1,0 +1,23 @@
+.tab-component { border: 1px solid #d7ded9; background: white; }
+.tabs {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    border-bottom: 3px solid #0b4d2c;
+}
+.tabs button {
+    min-height: 48px;
+    border: 0;
+    border-radius: 0;
+    background: white;
+    color: #0b4d2c;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+.tabs button.selected { background: #dcebe2; }
+.tabs button:disabled { cursor: default; }
+.tabs button:focus-visible { outline: 3px solid #0b4d2c; outline-offset: 3px; }
+.tab-panel[hidden] { display: none; }

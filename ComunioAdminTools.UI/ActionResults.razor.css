@@ -1,5 +1,8 @@
 table { width: 100%; border-collapse: collapse; font-size: 15px; }
 th, td { padding: 12px 8px; border-bottom: 1px solid #d7ded9; text-align: left; }
 th { color: #0b4d2c; }
-th:last-child, td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { width: 50%; overflow-wrap: anywhere; }
+th:last-child, td:last-child { width: 50%; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 p { margin: 0 0 12px; line-height: 1.5; }
+.row-over-limit { background: #f4cecc; color: #742520; }
+.row-within-limit { background: #d9eadb; color: #204a2b; }

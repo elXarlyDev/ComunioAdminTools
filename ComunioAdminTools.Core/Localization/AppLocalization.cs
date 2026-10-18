@@ -16,8 +16,10 @@ public sealed class AppLocalization
         "ComunioAdminTools.Core.Localization.Strings.ca-ES-valencia", typeof(AppLocalization).Assembly);
 
     public CultureInfo Culture { get; private set; } = CultureInfo.GetCultureInfo(SpanishCulture);
+
     public string Language => Culture.Name.Equals(ValencianCulture, StringComparison.OrdinalIgnoreCase)
         ? ValencianCulture : SpanishCulture;
+
     public event Action? Changed;
 
     public string this[TextKey key] => GetString(key);

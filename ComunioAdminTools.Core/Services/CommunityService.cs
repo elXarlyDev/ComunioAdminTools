@@ -13,11 +13,12 @@ public abstract class CommunityService : ComunioService
         this.sessionManager = sessionManager;
     }
 
-    protected Task<SessionDataModel> GetSessionAsync() => sessionManager.GetSessionAsync();
+    protected SessionDataModel Session => sessionManager.Session
+        ?? throw new AuthenticationRequiredException(text, TextKey.SignInRequired);
 
     public async Task<StandingsModel> GetStandingsAsync()
     {
-        var session = await GetSessionAsync();
+        var session = Session;
         //if (!session.User.IsLeader && !session.User.IsAdmin)
         //    throw new UnauthorizedAccessException(text[TextKey.PermissionDenied]);
 

@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:ComunioAdminTools.Mobile"
              xmlns:components="clr-namespace:ComunioAdminTools.Mobile.Components"
-             x:Class="ComunioAdminTools.Mobile.MainPage">
+             x:Class="ComunioAdminTools.Mobile.MainPage"
+             SafeAreaEdges="{OnPlatform Default=None, Android=Container}">
 
     <BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">
         <BlazorWebView.RootComponents>

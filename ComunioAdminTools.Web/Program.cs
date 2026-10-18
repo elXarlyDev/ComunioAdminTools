@@ -5,7 +5,6 @@ using ComunioAdminTools.Core;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.Services.AddComunioCore();
-builder.Services.AddSingleton<ComunioAdminTools.UI.ResultsDialogController>();
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 

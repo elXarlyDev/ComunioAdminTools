@@ -18,7 +18,6 @@ public sealed class CashService(IHttpClientFactory factory, ISessionManager sess
     public Task<IReadOnlyList<DineroJornadaModel>> RevertRoundPointsAsync() => ManageRoundPointsAsync(true);
     public async Task<IReadOnlyList<DineroJornadaModel>> PayInternationalBreakAsync()
     {
-        var session = await GetSessionAsync();
         var standings = await GetStandingsAsync();
         var results = new List<DineroJornadaModel>();
         foreach (var team in standings.Teams)
@@ -68,9 +67,8 @@ public sealed class CashService(IHttpClientFactory factory, ISessionManager sess
 
     private async Task PostCashAsync(string userId, int amount, string reason)
     {
-        var session = await GetSessionAsync();
 
-        await PostWithoutResponseAsync($"communities/{Uri.EscapeDataString(session.Community.Id)}/users/{Uri.EscapeDataString(userId)}/penalties",
+        await PostWithoutResponseAsync($"communities/{Uri.EscapeDataString(Session.Community.Id)}/users/{Uri.EscapeDataString(userId)}/penalties",
             new PostCashRequestModel { Amount = amount, Reason = reason });
     }
 }
@@ -79,7 +77,10 @@ public sealed class CashOperationException(AppLocalization text, string userName
     : Exception(text.Format(TextKey.CashOperationError, userName), innerException), ILocalizedError
 {
     public IReadOnlyList<DineroJornadaModel> ConfirmedPayments { get; } = confirmedPayments;
+
     public TextKey ResourceKey => TextKey.CashOperationError;
+
     public object?[] Arguments => [userName];
+
     public override string Message => text.Format(ResourceKey, Arguments);
 }

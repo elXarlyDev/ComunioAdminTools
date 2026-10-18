@@ -9,9 +9,10 @@
     <table>
         <thead><tr><th scope="col">@Text[TextKey.Username]</th><th scope="col">@ValueHeading</th></tr></thead>
         <tbody>
-            @foreach (var row in Rows)
+            @for (var index = 0; index < Rows.Count; index++)
             {
-                <tr><td>@row.Name</td><td>@row.Value</td></tr>
+                var row = Rows[index];
+                <tr class="@RowClass?.Invoke(index)"><td>@row.Name</td><td>@row.Value</td></tr>
             }
         </tbody>
     </table>
@@ -25,4 +26,5 @@ else if (Message is null)
     [Parameter] public IReadOnlyList<(string Name, string Value)> Rows { get; set; } = [];
     [Parameter] public string ValueHeading { get; set; } = "";
     [Parameter] public string? Message { get; set; }
+    [Parameter] public Func<int, string?>? RowClass { get; set; }
 }
