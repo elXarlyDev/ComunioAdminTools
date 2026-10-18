@@ -19,42 +19,8 @@
                 @onclick="LogoutAsync">@Text[TextKey.SignOut]</button>
     </header>
     <div class="main-content" inert="@(busy || resultsOpen)">
-        <section class="actions" aria-label="@Text[TextKey.AdminTools]">
-            <div class="tabs" aria-label="@Text[TextKey.Sections]">
-                <button type="button" class="@(dinersSelected ? "selected" : null)"
-                        aria-pressed="@(dinersSelected ? "true" : "false")"
-                        @onclick="() => dinersSelected = true">@Text[TextKey.Money]</button>
-                <button type="button" class="@(!dinersSelected ? "selected" : null)"
-                        aria-pressed="@(!dinersSelected ? "true" : "false")"
-                        @onclick="() => dinersSelected = false">@Text[TextKey.Queries]</button>
-            </div>
-
-            <div class="action-panel" hidden="@(!dinersSelected)">
-                <button type="button" class="action-button points"
-                        disabled="@(busy)" @onclick="PayRoundPointsAsync">
-                    @Text[TextKey.PayPoints]
-                </button>
-                <button type="button" class="action-button revert"
-                        disabled="@(busy)" @onclick="RevertRoundPointsAsync">
-                    @Text[TextKey.RevertPoints]
-                </button>
-                <button type="button" class="action-button bonus"
-                        disabled="@(busy)" @onclick="PayInternationalBreakAsync">
-                    @Text[TextKey.PayBreak]
-                </button>
-            </div>
-
-            <div class="action-panel" hidden="@dinersSelected">
-                <button type="button" class="action-button query"
-                        disabled="@(busy)" @onclick="ShowPointsAsync">
-                    @Text[TextKey.QueryPoints]
-                </button>
-                <button type="button" class="action-button query"
-                        disabled="@(busy)" @onclick="ShowSquadExcessAsync">
-                    @Text[TextKey.QuerySquads]
-                </button>
-            </div>
-        </section>
+        <TabComponent Tabs="Tabs" Disabled="@(busy || resultsOpen)"
+                      Label="@Text[TextKey.AdminTools]" TabsLabel="@Text[TextKey.Sections]" />
     </div>
 
     @if (busy)
@@ -80,7 +46,6 @@
 </main>
 
 @code {
-    private bool dinersSelected = true;
     private string sessionUsername = "";
     private bool hasSession;
     private bool busy = true;
@@ -97,6 +62,37 @@
     private IReadOnlyList<(string Name, string Value)> Rows => values.Select(row =>
         (row.Name, cashResults ? row.Value.ToString("C0", Text.Culture)
             : row.Value.ToString("N0", Text.Culture))).ToArray();
+    private IReadOnlyList<TabItem> Tabs
+    {
+        get
+        {
+            var tabs = new List<TabItem>();
+            if (Session.Session?.User is { IsAdmin: true } or { IsLeader: true })
+                tabs.Add(new(Text[TextKey.Money], MoneyActions));
+
+            tabs.Add(new(Text[TextKey.Queries], QueryActions));
+            return tabs;
+        }
+    }
+    private RenderFragment MoneyActions => @<div class="action-panel">
+        <button type="button" class="action-button points" disabled="@(busy || resultsOpen)" @onclick="PayRoundPointsAsync">
+            @Text[TextKey.PayPoints]
+        </button>
+        <button type="button" class="action-button revert" disabled="@(busy || resultsOpen)" @onclick="RevertRoundPointsAsync">
+            @Text[TextKey.RevertPoints]
+        </button>
+        <button type="button" class="action-button bonus" disabled="@(busy || resultsOpen)" @onclick="PayInternationalBreakAsync">
+            @Text[TextKey.PayBreak]
+        </button>
+    </div>;
+    private RenderFragment QueryActions => @<div class="action-panel">
+        <button type="button" class="action-button query" disabled="@(busy || resultsOpen)" @onclick="ShowPointsAsync">
+            @Text[TextKey.QueryPoints]
+        </button>
+        <button type="button" class="action-button query" disabled="@(busy || resultsOpen)" @onclick="ShowSquadExcessAsync">
+            @Text[TextKey.QuerySquads]
+        </button>
+    </div>;
     private RenderFragment ResultContent => @<ActionResults Rows="Rows" ValueHeading="@Text[headingKey]" Message="@Message" />;
 
     protected override void OnInitialized()

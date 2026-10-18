@@ -106,6 +106,29 @@ await using (var renderer = new HtmlRenderer(services, services.GetRequiredServi
     Check(!valencianHtml.Contains("Herramientas de administración") && retainedError.Message == text[TextKey.SessionExpired], "No stale translated strings.");
 }
 
+foreach (var language in new[] { AppLocalization.SpanishCulture, AppLocalization.ValencianCulture })
+{
+    text.SetCulture(language);
+    foreach (var (isAdmin, isLeader) in new[] { (false, false), (true, false), (false, true), (true, true) })
+    {
+        api.IsAdmin = isAdmin;
+        api.IsLeader = isLeader;
+        await auth.LoginAsync("user", "password");
+        await using var renderer = new HtmlRenderer(services, services.GetRequiredService<ILoggerFactory>());
+        var root = await renderer.Dispatcher.InvokeAsync(() => renderer.RenderComponentAsync<MainPage>());
+        var html = await renderer.Dispatcher.InvokeAsync(() => WebUtility.HtmlDecode(root.ToHtmlString()));
+        var canManageMoney = isAdmin || isLeader;
+        Check(html.Contains($">{text[TextKey.Money]}</button>") == canManageMoney,
+            "Money tab is only rendered for administrators or leaders.");
+        foreach (var key in new[] { TextKey.PayPoints, TextKey.RevertPoints, TextKey.PayBreak })
+            Check(html.Contains(text[key]) == canManageMoney, "Money actions follow the session permissions.");
+        Check(html.Contains($">{text[TextKey.Queries]}</button>")
+            && html.Contains(text[TextKey.QueryPoints]) && html.Contains(text[TextKey.QuerySquads]),
+            "Queries remain available for every signed-in user.");
+    }
+}
+await auth.LogoutAsync();
+
 using var secondClient = serviceCollection.BuildServiceProvider();
 await using (var renderer = new HtmlRenderer(services, services.GetRequiredService<ILoggerFactory>()))
 {
@@ -122,6 +145,8 @@ Console.WriteLine("Localization checks passed for Spanish and Valencian, includi
 
 sealed class TestApi : HttpMessageHandler
 {
+    public bool IsAdmin { get; set; } = true;
+    public bool IsLeader { get; set; }
     public HttpStatusCode Status { get; set; } = HttpStatusCode.OK;
     public HttpStatusCode LoginStatus { get; set; } = HttpStatusCode.OK;
     public string? Body { get; set; }
@@ -133,7 +158,11 @@ sealed class TestApi : HttpMessageHandler
         if (path == "/login")
             return Task.FromResult(Json(LoginStatus, "{\"access_token\":\"test\",\"refresh_token\":\"refresh\",\"expires_in\":1800}"));
         if (path == "/")
-            return Task.FromResult(Json(HttpStatusCode.OK, "{\"user\":{\"id\":\"admin\",\"isAdmin\":true},\"community\":{\"id\":\"test\"}}"));
+            return Task.FromResult(Json(HttpStatusCode.OK, System.Text.Json.JsonSerializer.Serialize(new
+            {
+                user = new { id = "user", name = "User", isAdmin = IsAdmin, isLeader = IsLeader },
+                community = new { id = "test" }
+            })));
         if (TransportError is not null) return Task.FromException<HttpResponseMessage>(TransportError);
         return Task.FromResult(Json(Status, Status == HttpStatusCode.OK ? Body ?? "{\"items\":[]}" : "EXTERNAL ERROR"));
     }

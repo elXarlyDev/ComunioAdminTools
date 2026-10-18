@@ -113,6 +113,9 @@ la esquina superior derecha vuelve a LoginPage. Acceder a /main sin sesión
 también redirige al login. Las rutas se resuelven desde la biblioteca UI compartida.
 Un acceso rechazado conserva la pantalla de login. Las pantallas se comparten
 entre Web y Mobile y el idioma elegido se conserva al cambiar de pantalla.
+MainPage incluye la pestaña de dinero únicamente si el usuario de la sesión es
+administrador o líder (`IsAdmin` o `IsLeader`). Las consultas están disponibles
+para todos los usuarios con sesión.
 
 ## Generar la APK
 
