@@ -67,7 +67,9 @@ api.Payments.Clear();
 var points = await provider.GetRequiredService<PointsService>().GetLastRoundPointsAsync();
 Check(points.Select(x => x.Points).SequenceEqual([250, 50, 0, -3]), "Consulta y ordenacion de puntos.");
 var excess = await provider.GetRequiredService<SquadService>().GetSquadExcessAsync();
-Check(excess.Count == 1 && excess[0].UserName == "A" && excess[0].PlayerCount == 26, "Limite estricto de 25 jugadores.");
+Check(excess.Squads.Count == 4 && excess.Squads[0].UserName == "A" && excess.Squads[0].PlayerCount == 26
+    && excess.Squads.Any(row => row.PlayerCount == 25) && excess.Squads.Any(row => row.PlayerCount == 24),
+    "La consulta de plantillas incluye todos los usuarios, dentro y fuera del limite de 25.");
 Check(api.Payments.Count == 0 && api.ProfileRequests == 1, "Consultas sin pagos y reutilizacion del perfil.");
 var pointsService = provider.GetRequiredService<IPointsService>();
 await pointsService.GetMonthlyStandingsAsync(2026, 8);
@@ -78,6 +80,8 @@ await pointsService.GetFirstHalfStandingsAsync();
 Check(api.LastStandingsQuery == "?period=firstHalf&wpe=true", "Clasificacion de primera mitad.");
 await pointsService.GetSecondHalfStandingsAsync();
 Check(api.LastStandingsQuery == "?period=secondHalf&wpe=true", "Clasificacion de segunda mitad.");
+await pointsService.GetSeasonStandingsAsync();
+Check(api.LastStandingsQuery == "?period=total", "Clasificacion de temporada sin parametros adicionales.");
 Check(api.Payments.Count == 0 && api.ProfileRequests == 1, "Clasificaciones sin pagos ni recarga del perfil.");
 api.FailAtPayment = 3;
 try
@@ -300,13 +304,16 @@ sealed class FakeApi : HttpMessageHandler
             if (FailProfile) return new(HttpStatusCode.ServiceUnavailable);
             response = new { user = new { id = "admin", name = "Admin", isAdmin = true }, community = new { id = "community" } };
         }
+        else if (path == "/matchdays")
+            response = new[] { new { timestamp = "2026-10-16T21:02:01+02:00", started = true, finished = false } };
         else if (path.EndsWith("/standings"))
         {
             LastStandingsQuery = request.RequestUri.Query;
             response = new { items = new[] { ("A", "250"), ("B", "50"), ("C", "-3"), ("D", "invalid") }.Select(x => new { lastPoints = x.Item2, _embedded = new { user = new { id = x.Item1, name = x.Item1 } } }) };
         }
         else if (path.EndsWith("/squad"))
-            response = new { items = Enumerable.Range(0, path.Contains("/A/") ? 26 : 25).Select(x => new { id = x }) };
+            response = new { items = Enumerable.Range(0, path.Contains("/A/") ? 26 : path.Contains("/C/") ? 24 : 25)
+                .Select(x => new { id = x, purchaseInfo = new { date = "2026-10-01T00:00:00+02:00" } }) };
         else if (path.EndsWith("/penalties"))
         {
             PaymentAttempts = FailAtPayment.HasValue ? PaymentAttempts + 1 : 0;

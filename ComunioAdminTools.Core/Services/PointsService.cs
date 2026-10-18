@@ -10,6 +10,7 @@ public interface IPointsService
     Task<StandingsModel> GetMonthlyStandingsAsync(int year, int month);
     Task<StandingsModel> GetFirstHalfStandingsAsync();
     Task<StandingsModel> GetSecondHalfStandingsAsync();
+    Task<StandingsModel> GetSeasonStandingsAsync();
 }
 
 public sealed class PointsService(IHttpClientFactory factory, ISessionManager sessionManager, AppLocalization text) : CommunityService(factory, sessionManager, text), IPointsService
@@ -35,6 +36,9 @@ public sealed class PointsService(IHttpClientFactory factory, ISessionManager se
 
     public Task<StandingsModel> GetSecondHalfStandingsAsync()
         => GetPeriodStandingsAsync("period=secondHalf&wpe=true");
+
+    public Task<StandingsModel> GetSeasonStandingsAsync()
+        => GetPeriodStandingsAsync("period=total");
 
     private Task<StandingsModel> GetPeriodStandingsAsync(string query)
         => GetAsync<StandingsModel>($"communities/{Uri.EscapeDataString(Session.Community.Id)}/standings?{query}");

@@ -11,7 +11,8 @@ La solución contiene cuatro proyectos activos:
 
 Las cinco operaciones del proyecto original están conectadas a la interfaz común:
 abonar dinero por puntos, revertirlo, abonar 5 millones por el parón, consultar
-puntos y consultar plantillas de más de 25 jugadores. Se mantienen importes,
+puntos y consultar el tamaño de todas las plantillas, resaltando las que superan
+25 jugadores. Se mantienen importes,
 límites de 100 puntos por petición, motivos y ordenación de resultados.
 
 Core sustituye los helpers HTTP y los modelos de login originales por la
@@ -125,11 +126,23 @@ importes confirmados, sin ofrecer una reversión completa de la jornada.
 Consultas usa los botones Últimos puntos y Exceso plantilla, en una fila compacta.
 Sus resultados, estados vacíos y errores aparecen en la misma pestaña, con Ocultar
 alineado a la derecha. Cada pestaña conserva sus resultados de forma independiente.
-El botón Clasificaciones permite consultar Mes, Primera mitad o Segunda mitad.
+El botón Clasificaciones permite consultar Mes, Primera mitad, Segunda mitad o
+Temporada (`period=total`). Solo Mes muestra el selector de meses.
 Al abrirlo se consulta el mes actual; al cambiar el periodo o mes se actualizan
 los resultados. Los meses disponibles van de agosto de la temporada al mes actual,
 ambos incluidos, mostrando su año. En agosto comienza una nueva lista de temporada.
 Las clasificaciones muestran los puntos totales del periodo en orden descendente.
+Exceso plantilla muestra todos los usuarios y su número de jugadores: rojo suave
+para más de 25 jugadores y verde suave para 25 o menos. Este sombreado solo se
+aplica a esta consulta.
+El recuento consulta primero `/matchdays` y toma el timestamp de la jornada
+iniciada y sin finalizar (la más reciente si hay varias). Si no hay ninguna
+activa, utiliza la jornada iniciada con timestamp más reciente. Solo cuenta
+jugadores con `purchaseInfo.date` estrictamente anterior a ese instante,
+respetando las zonas horarias; las fechas iguales, posteriores o ausentes no
+cuentan. Si no hay jornadas iniciadas, muestra un error sin consultar plantillas.
+La respuesta conserva el `matchdayKey` de la jornada seleccionada y el título
+del resultado lo muestra como `Exceso de plantilla (Jornada {matchdayKey})`.
 
 ## Generar la APK
 
@@ -150,6 +163,7 @@ dotnet build ComunioAdminTools.Mobile/ComunioAdminTools.Mobile.csproj -f net10.0
 dotnet build ComunioAdminTools.Mobile/ComunioAdminTools.Mobile.csproj -f net10.0-windows10.0.19041.0
 dotnet run --project Tests/MigrationChecks/MigrationChecks.csproj
 dotnet run --project Tests/LocalizationChecks/LocalizationChecks.csproj
+dotnet run --project Tests/SquadChecks/SquadChecks.csproj
 ```
 
 Las comprobaciones de migración usan una API simulada. Cubren las cinco operaciones,

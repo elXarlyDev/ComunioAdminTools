@@ -79,4 +79,7 @@
   <data name="Month" xml:space="preserve"><value>Mes</value></data>
   <data name="FirstHalf" xml:space="preserve"><value>Primera mitad</value></data>
   <data name="SecondHalf" xml:space="preserve"><value>Segunda mitad</value></data>
+  <data name="NoStartedMatchday" xml:space="preserve"><value>No hay ninguna jornada iniciada para calcular las plantillas.</value></data>
+  <data name="SquadExcessMatchday" xml:space="preserve"><value>Exceso de plantilla (Jornada {0})</value></data>
+  <data name="Season" xml:space="preserve"><value>Temporada</value></data>
 </root>

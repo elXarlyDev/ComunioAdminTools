@@ -44,6 +44,7 @@
     private bool queryResultsVisible;
     private MoneyResult? moneyResult;
     private TextKey titleKey = TextKey.Results;
+    private string? squadMatchdayKey;
     private TextKey headingKey = TextKey.Amount;
     private TextKey? messageKey;
     private Exception? error;
@@ -54,6 +55,10 @@
     private int selectedMonthIndex;
 
     private string CommunityName => Session.Session?.Community?.Name ?? "";
+
+    private string QueryTitle => titleKey == TextKey.SquadExcess && !string.IsNullOrWhiteSpace(squadMatchdayKey)
+        ? Text.Format(TextKey.SquadExcessMatchday, squadMatchdayKey)
+        : Text[titleKey];
 
     private string? Message => error is not null ? Text.ErrorMessage(error)
         : messageKey is { } key ? Text[key] : null;
@@ -133,6 +138,7 @@
                         <option value="@ClassificationPeriod.Month">@Text[TextKey.Month]</option>
                         <option value="@ClassificationPeriod.FirstHalf">@Text[TextKey.FirstHalf]</option>
                         <option value="@ClassificationPeriod.SecondHalf">@Text[TextKey.SecondHalf]</option>
+                        <option value="@ClassificationPeriod.Season">@Text[TextKey.Season]</option>
                     </select>
                 </label>
                 @if (classificationPeriod == ClassificationPeriod.Month)
@@ -152,8 +158,8 @@
         @if (queryResultsVisible)
         {
             <section class="query-results" aria-labelledby="query-result-title" aria-live="polite">
-                <h2 id="query-result-title">@Text[titleKey]</h2>
-                <ActionResults Rows="Rows" ValueHeading="@Text[headingKey]" Message="@Message" />
+                <h2 id="query-result-title">@QueryTitle</h2>
+                <ActionResults Rows="Rows" ValueHeading="@Text[headingKey]" Message="@Message" RowClass="GetQueryRowClass" />
                 <div class="query-result-actions">
                     <button type="button" class="action-button query" disabled="@busy" @onclick="HideQueryResults">
                         @Text[TextKey.Hide]
@@ -219,7 +225,8 @@
     {
         classificationSelectorsVisible = false;
         var result = await Squads.GetSquadExcessAsync();
-        ShowRows(TextKey.SquadExcess, TextKey.Players, result.Select(x => (x.UserName, x.PlayerCount)).ToArray());
+        ShowRows(TextKey.SquadExcess, TextKey.Players, result.Squads.Select(x => (x.UserName, x.PlayerCount)).ToArray());
+        squadMatchdayKey = result.MatchdayKey;
     });
 
     private Task ShowClassificationsAsync() => RunAsync(async () =>
@@ -241,6 +248,7 @@
             ClassificationPeriod.Month => Points.GetMonthlyStandingsAsync(month.Year, month.Month),
             ClassificationPeriod.FirstHalf => Points.GetFirstHalfStandingsAsync(),
             ClassificationPeriod.SecondHalf => Points.GetSecondHalfStandingsAsync(),
+            ClassificationPeriod.Season => Points.GetSeasonStandingsAsync(),
             _ => throw new InvalidOperationException()
         });
         ShowRows(TextKey.Standings, TextKey.Points, result.Teams
@@ -282,6 +290,7 @@
     private void ShowRows(TextKey title, TextKey heading, IReadOnlyList<(string Name, int Value)> result, TextKey? message = null)
     {
         titleKey = title;
+        squadMatchdayKey = null;
         headingKey = heading;
         values = result;
         messageKey = message;
@@ -289,12 +298,17 @@
         queryResultsVisible = true;
     }
 
+    private string? GetQueryRowClass(int index) => titleKey == TextKey.SquadExcess
+        ? values[index].Value > 25 ? "row-over-limit" : "row-within-limit"
+        : null;
+
     private void ShowMessage(TextKey message) => ShowRows(TextKey.Error, TextKey.Amount, [], message);
 
     private void HideMoneyResults() => moneyResult = null;
 
     private void HideQueryResults()
     {
+        squadMatchdayKey = null;
         classificationSelectorsVisible = false;
         queryResultsVisible = false;
         values = [];
@@ -315,7 +329,7 @@
         Session.SessionChanged -= OnSessionChanged;
     }
 
-    private enum ClassificationPeriod { Month, FirstHalf, SecondHalf }
+    private enum ClassificationPeriod { Month, FirstHalf, SecondHalf, Season }
 
     private sealed record MoneyResult(
         TextKey Title,

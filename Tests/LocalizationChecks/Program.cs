@@ -208,10 +208,28 @@ await using (var renderer = new HtmlRenderer(services, services.GetRequiredServi
     Check(!html.Contains("class=\"query-results\"") && html.Contains("class=\"money-results\"")
         && html.Contains(text[TextKey.RevertPoints]), "Hiding query results does not clear money results.");
 
+    var standingsBody = api.Body;
+    api.Body = """{"items":[{"_embedded":{"user":{"id":"a","name":"Player A"}}},{"_embedded":{"user":{"id":"b","name":"Player B"}}},{"_embedded":{"user":{"id":"c","name":"Player C"}}}]}""";
     html = await ClickAsync("ShowSquadExcessAsync");
     Check(html.Contains("class=\"query-results\"") && html.Contains(text[TextKey.SquadExcess])
         && html.Contains(text[TextKey.Players]) && html.Contains("26") && !html.Contains("role=\"dialog\""),
         "Squad excess shows its own title and player counts inline.");
+    Check(html.Contains(text.Format(TextKey.SquadExcessMatchday, "9")),
+        "Squad result title includes the selected matchday key.");
+    Check(html.Contains("Player A") && html.Contains("Player B") && html.Contains("Player C")
+        && html.Contains(">26</td>") && html.Contains(">25</td>") && html.Contains(">24</td>"),
+        "Squad results show every user, including users at and below the limit.");
+    Check(System.Text.RegularExpressions.Regex.Matches(html, "class=\"row-over-limit\"").Count == 1
+        && System.Text.RegularExpressions.Regex.Matches(html, "class=\"row-within-limit\"").Count == 2,
+        "Only squads above 25 get red shading; 25 and below get green shading.");
+    foreach (var language in new[] { AppLocalization.SpanishCulture, AppLocalization.ValencianCulture })
+    {
+        text.SetCulture(language);
+        html = await ClickAsync("ShowSquadExcessAsync");
+        Check(html.Contains(text.Format(TextKey.SquadExcessMatchday, "9")),
+            "The matchday title is localized in both languages.");
+    }
+    api.Body = standingsBody;
     await ClickAsync("HideMoneyResults");
     html = await ClickAsync("HideQueryResults");
     Check(!html.Contains("class=\"query-results\"") && !html.Contains(text[TextKey.Hide]),
@@ -244,6 +262,8 @@ await using (var renderer = new HtmlRenderer(services, services.GetRequiredServi
     Check(html.IndexOf("High scorer", StringComparison.Ordinal) < html.IndexOf("Low scorer", StringComparison.Ordinal)
         && html.Contains(text[TextKey.Points]) && !html.Contains("role=\"dialog\""),
         "Classification uses total points, sorted descending, inside the query tab.");
+    Check(!html.Contains("row-over-limit") && !html.Contains("row-within-limit"),
+        "Squad row shading is not applied to other queries.");
 
     var monthField = typeof(MainPage).GetField("selectedMonthIndex", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
     await renderer.Dispatcher.InvokeAsync(() => monthField.SetValue(page, 0));
@@ -251,12 +271,12 @@ await using (var renderer = new HtmlRenderer(services, services.GetRequiredServi
     Check(api.LastStandingsQuery == $"?period=month&year={months[0].Year}&month=8",
         "Choosing the first month queries August of the season year.");
     var periodField = typeof(MainPage).GetField("classificationPeriod", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
-    foreach (var (period, query) in new[] { ("FirstHalf", "?period=firstHalf&wpe=true"), ("SecondHalf", "?period=secondHalf&wpe=true") })
+    foreach (var (period, query) in new[] { ("FirstHalf", "?period=firstHalf&wpe=true"), ("SecondHalf", "?period=secondHalf&wpe=true"), ("Season", "?period=total") })
     {
         await renderer.Dispatcher.InvokeAsync(() => periodField.SetValue(page, Enum.Parse(periodField.FieldType, period)));
         html = await ClickAsync("RefreshClassificationAsync");
         Check(api.LastStandingsQuery == query && System.Text.RegularExpressions.Regex.Matches(html, "<select\\b").Count == 1,
-            "Half classifications use the specified endpoint and hide the month selector.");
+            "Half and season classifications use the specified endpoint and hide the month selector.");
     }
     await renderer.Dispatcher.InvokeAsync(() => periodField.SetValue(page, Enum.Parse(periodField.FieldType, "Month")));
     html = await ClickAsync("RefreshClassificationAsync");
@@ -320,10 +340,14 @@ sealed class TestApi : HttpMessageHandler
                 community = new { id = "test" }
             })));
         if (TransportError is not null) return Task.FromException<HttpResponseMessage>(TransportError);
+        if (path == "/matchdays")
+            return Task.FromResult(Json(HttpStatusCode.OK,
+                """[{"matchdayKey":"9","timestamp":"2026-10-16T21:02:01+02:00","started":true,"finished":false}]"""));
         if (path.EndsWith("/squad"))
             return Task.FromResult(Json(HttpStatusCode.OK, System.Text.Json.JsonSerializer.Serialize(new
             {
-                items = Enumerable.Range(0, 26).Select(id => new { id = id.ToString() })
+                items = Enumerable.Range(0, path.Contains("/a/") ? 26 : path.Contains("/b/") ? 25 : 24)
+                    .Select(id => new { id = id.ToString(), purchaseInfo = new { date = "2026-10-01T00:00:00+02:00" } })
             })));
         if (path.EndsWith("/penalties"))
         {
