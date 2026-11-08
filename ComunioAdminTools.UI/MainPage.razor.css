@@ -61,6 +61,20 @@
 .money-panel, .query-panel { gap: 24px; }
 .money-buttons, .query-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .query-buttons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.market-panel { gap: 16px; }
+.market-panel .action-button { align-self: flex-start; min-height: 44px; font-size: 12px; }
+.market-results { min-width: 0; }
+.market-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.market-filters h2, .market-filters label:first-of-type { grid-column: 1 / -1; }
+.market-filters h2, .market-results h2 { margin: 0 0 4px; color: #0b4d2c; font-size: 18px; }
+.market-results h2 { margin-bottom: 12px; }
+.market-filters label { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 12px; }
+.market-filters input, .market-filters select { box-sizing: border-box; width: 100%; min-height: 44px; padding: 8px; border: 1px solid #d7ded9; border-radius: 8px; background: white; color: #26332b; font: inherit; font-size: 14px; }
+.market-filters select:focus-visible { outline: 3px solid #0b4d2c; outline-offset: 3px; }
+.market-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; font-size: 12px; }
+.transfer-grid { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.transfer-row { padding: 10px 12px; border: 1px solid #d7ded9; border-radius: 8px; background: #f5f7f5; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.transfer-club, .transfer-row time { color: #526159; }
 .classification-filters { display: flex; gap: 12px; }
 .classification-filters label { display: flex; flex: 1; flex-direction: column; gap: 6px; min-width: 0; font-size: 12px; }
 .classification-filters select {
@@ -96,6 +110,7 @@
 .action-button:active:not(:disabled) { transform: scale(.98); }
 .action-button:disabled { opacity: .65; cursor: default; }
 .points { background: #0b4d2c; }
+.market { background: #0b4d2c; }
 .revert { background: #d9534f; }
 .bonus { background: #5f9ea0; }
 .query { background: #6c757d; }

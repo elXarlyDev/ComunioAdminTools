@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddTransient<PointsService>();
         services.AddTransient<IPointsService>(provider => provider.GetRequiredService<PointsService>());
         services.AddTransient<SquadService>();
+        services.AddTransient<IMarketService, MarketService>();
         services.AddHttpClient("ComunioAuth", client =>
         {
             client.BaseAddress = new Uri("https://api.comunio.es/");

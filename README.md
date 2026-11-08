@@ -146,6 +146,24 @@ del resultado lo muestra como `Exceso de plantilla (Jornada {matchdayKey})`.
 
 ## Generar la APK
 
+La pestaña Mercado permite consultar Historial de Fichajes para la comunidad y
+el usuario de la sesión. La consulta solicita `limit=999999`, sin `offset`.
+Cada fila muestra jugador y club con la fecha de ejecución (`datechanged`) al
+lado, seguida del precio y del vendedor y comprador. La fecha conserva su zona
+horaria. Los resultados y errores se muestran dentro de Mercado.
+El botón usa el verde Comunio. El filtro de futbolista busca coincidencias
+parciales sin distinguir mayúsculas. Comprador y Vendedor son desplegables con
+los usuarios de la comunidad, Computer y los participantes del historial,
+incluidos los que ya no estén en la comunidad, con la opción Todos. Los filtros se
+combinan y se
+aplican al historial descargado y vuelven a la primera página al cambiar.
+Los resultados se paginan de 10 en 10 con botones -10, -1, +1 y +10 páginas;
+los saltos se limitan a la primera y última página. Bajo el título Filtros,
+Futbolista ocupa una fila y Comprador y Vendedor comparten la siguiente.
+El listado aparece bajo el título Fichajes.
+La dirección del fichaje es `tradingPartner` (vendedor) → `user` (comprador),
+tanto para `SALE` como para `PURCHASE`; el tipo no invierte los participantes.
+
 ```powershell
 .\ComunioAdminTools.Mobile\Platforms\Android\CrearAndroidApk.ps1
 ```
@@ -164,6 +182,7 @@ dotnet build ComunioAdminTools.Mobile/ComunioAdminTools.Mobile.csproj -f net10.0
 dotnet run --project Tests/MigrationChecks/MigrationChecks.csproj
 dotnet run --project Tests/LocalizationChecks/LocalizationChecks.csproj
 dotnet run --project Tests/SquadChecks/SquadChecks.csproj
+dotnet run --project Tests/MarketChecks/MarketChecks.csproj
 ```
 
 Las comprobaciones de migración usan una API simulada. Cubren las cinco operaciones,

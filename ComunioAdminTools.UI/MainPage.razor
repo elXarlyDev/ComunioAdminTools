@@ -9,6 +9,7 @@
 @inject CashService Cash
 @inject IPointsService Points
 @inject SquadService Squads
+@inject IMarketService Market
 @implements IDisposable
 
 <main class="admin-page" aria-busy="@(busy ? "true" : "false")">
@@ -38,6 +39,8 @@
 </main>
 
 @code {
+    private const int TransferPageSize = 10;
+
     private string sessionUsername = "";
     private bool hasSession;
     private bool busy = true;
@@ -53,6 +56,16 @@
     private ClassificationPeriod classificationPeriod = ClassificationPeriod.Month;
     private IReadOnlyList<DateOnly> classificationMonths = [];
     private int selectedMonthIndex;
+    private IReadOnlyList<TransferModel>? transfers;
+    private Exception? marketError;
+    private string playerFilter = "";
+    private string buyerFilter = "";
+    private string sellerFilter = "";
+    private IReadOnlyList<string> marketUsers = [];
+    private IReadOnlyList<TransferModel> filteredTransfers = [];
+    private int transferPage;
+
+    private int TransferPageCount => Math.Max(1, (filteredTransfers.Count + TransferPageSize - 1) / TransferPageSize);
 
     private string CommunityName => Session.Session?.Community?.Name ?? "";
 
@@ -84,6 +97,7 @@
                 tabs.Add(new(Text[TextKey.Money], MoneyActions));
 
             tabs.Add(new(Text[TextKey.Queries], QueryActions));
+            tabs.Add(new(Text[TextKey.Market], MarketContent));
             return tabs;
         }
     }
@@ -119,13 +133,13 @@
 
     private RenderFragment QueryActions => @<div class="action-panel query-panel">
         <div class="query-buttons">
-            <button type="button" class="action-button query" disabled="@busy" @onclick="ShowPointsAsync">
+            <button type="button" class="action-button bonus" disabled="@busy" @onclick="ShowPointsAsync">
                 @Text[TextKey.QueryPoints]
             </button>
-            <button type="button" class="action-button query" disabled="@busy" @onclick="ShowSquadExcessAsync">
+            <button type="button" class="action-button revert" disabled="@busy" @onclick="ShowSquadExcessAsync">
                 @Text[TextKey.QuerySquads]
             </button>
-            <button type="button" class="action-button query" disabled="@busy" @onclick="ShowClassificationsAsync">
+            <button type="button" class="action-button points" disabled="@busy" @onclick="ShowClassificationsAsync">
                 @Text[TextKey.Standings]
             </button>
         </div>
@@ -165,6 +179,84 @@
                         @Text[TextKey.Hide]
                     </button>
                 </div>
+            </section>
+        }
+    </div>;
+
+    private RenderFragment MarketContent => @<div class="action-panel market-panel">
+        <button type="button" class="action-button market" disabled="@busy" @onclick="ShowTransferHistoryAsync">
+            @Text[TextKey.TransferHistory]
+        </button>
+        @if (marketError is not null)
+        {
+            <p role="alert">@Text.ErrorMessage(marketError)</p>
+        }
+        else if (transfers is not null)
+        {
+            <div class="market-filters">
+                <h2>@Text[TextKey.Filters]</h2>
+                <label>
+                    <span>@Text[TextKey.FilterPlayer]</span>
+                    <input type="search" disabled="@busy" @bind="playerFilter" @bind:event="oninput" @bind:after="FilterTransfers" />
+                </label>
+                <label>
+                    <span>@Text[TextKey.FilterBuyer]</span>
+                    <select disabled="@busy" @bind="buyerFilter" @bind:after="FilterTransfers">
+                        <option value="">@Text[TextKey.AllUsers]</option>
+                        @foreach (var user in marketUsers)
+                        {
+                            <option value="@user">@user</option>
+                        }
+                    </select>
+                </label>
+                <label>
+                    <span>@Text[TextKey.FilterSeller]</span>
+                    <select disabled="@busy" @bind="sellerFilter" @bind:after="FilterTransfers">
+                        <option value="">@Text[TextKey.AllUsers]</option>
+                        @foreach (var user in marketUsers)
+                        {
+                            <option value="@user">@user</option>
+                        }
+                    </select>
+                </label>
+            </div>
+            <section class="market-results" aria-label="@Text[TextKey.TransferHistory]" aria-live="polite">
+                <h2>@Text[TextKey.Transfers]</h2>
+                @if (filteredTransfers.Count == 0)
+                {
+                    <p>@Text[TextKey.NoResults]</p>
+                }
+                else
+                {
+                    <ul class="transfer-grid">
+                        @foreach (var transfer in filteredTransfers.Skip(transferPage * TransferPageSize).Take(TransferPageSize))
+                        {
+                            <li class="transfer-row">
+                                <div>
+                                    <strong>@transfer.PlayerName</strong> <span class="transfer-club">(@transfer.ClubName)</span>
+                                    <time datetime="@transfer.DateChanged.ToString("O")">@transfer.DateChanged.ToString("g", Text.Culture)</time>
+                                </div>
+                                <div>@Text[TextKey.TransferPrice]: <strong>@transfer.Price.ToString("C0", Text.Culture)</strong></div>
+                                <div>@transfer.SellerName <span> -&gt; </span> @transfer.BuyerName</div>
+                            </li>
+                        }
+                    </ul>
+                    <nav class="market-pagination" aria-label="@Text[TextKey.TransferPages]">
+                        <button type="button" class="action-button query" disabled="@(busy || transferPage == 0)" @onclick="() => ChangeTransferPage(-10)">
+                            -10
+                        </button>
+                        <button type="button" class="action-button query" disabled="@(busy || transferPage == 0)" @onclick="() => ChangeTransferPage(-1)">
+                            -1
+                        </button>
+                        <span>@Text.Format(TextKey.PageOf, transferPage + 1, TransferPageCount)</span>
+                        <button type="button" class="action-button query" disabled="@(busy || transferPage + 1 >= TransferPageCount)" @onclick="() => ChangeTransferPage(1)">
+                            +1
+                        </button>
+                        <button type="button" class="action-button query" disabled="@(busy || transferPage + 1 >= TransferPageCount)" @onclick="() => ChangeTransferPage(10)">
+                            +10
+                        </button>
+                    </nav>
+                }
             </section>
         }
     </div>;
@@ -213,6 +305,43 @@
             moneyResult = null;
             moneyResult = new(title, await action(), message);
         }, moneyAction: true);
+
+    private Task ShowTransferHistoryAsync() => RunAsync(async () =>
+    {
+        transfers = null;
+        marketError = null;
+        try
+        {
+            transfers = await Market.GetTransferHistoryAsync();
+            var communityUsers = await Market.GetCommunityUserNamesAsync();
+            marketUsers = communityUsers
+                .Concat(transfers.SelectMany(transfer => new[] { transfer.BuyerName, transfer.SellerName }))
+                .Append("Computer")
+                .Where(name => !string.IsNullOrWhiteSpace(name))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(name => name, StringComparer.Create(Text.Culture, ignoreCase: true))
+                .ToArray();
+            FilterTransfers();
+        }
+        catch (Exception ex)
+        {
+            marketError = ex;
+        }
+    });
+
+    private void ChangeTransferPage(int offset)
+    {
+        transferPage = Math.Clamp(transferPage + offset, 0, TransferPageCount - 1);
+    }
+
+    private void FilterTransfers()
+    {
+        filteredTransfers = transfers?.Where(transfer =>
+            transfer.PlayerName.Contains(playerFilter.Trim(), StringComparison.OrdinalIgnoreCase)
+            && (buyerFilter.Length == 0 || string.Equals(transfer.BuyerName, buyerFilter, StringComparison.OrdinalIgnoreCase))
+            && (sellerFilter.Length == 0 || string.Equals(transfer.SellerName, sellerFilter, StringComparison.OrdinalIgnoreCase))).ToArray() ?? [];
+        transferPage = 0;
+    }
 
     private Task ShowPointsAsync() => RunAsync(async () =>
     {

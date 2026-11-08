@@ -21,6 +21,20 @@
   <data name="Sections" xml:space="preserve"><value>Seccions</value></data>
   <data name="Money" xml:space="preserve"><value>Diners</value></data>
   <data name="Queries" xml:space="preserve"><value>Consultes</value></data>
+  <data name="Market" xml:space="preserve"><value>Mercat</value></data>
+  <data name="AllUsers" xml:space="preserve"><value>Tots</value></data>
+  <data name="Filters" xml:space="preserve"><value>Filtres</value></data>
+  <data name="Transfers" xml:space="preserve"><value>Fitxatges</value></data>
+  <data name="FilterPlayer" xml:space="preserve"><value>Futbolista</value></data>
+  <data name="FilterBuyer" xml:space="preserve"><value>Comprador</value></data>
+  <data name="FilterSeller" xml:space="preserve"><value>Venedor</value></data>
+  <data name="TransferPages" xml:space="preserve"><value>Pàgines de l'historial de fitxatges</value></data>
+  <data name="PreviousPage" xml:space="preserve"><value>Anterior</value></data>
+  <data name="NextPage" xml:space="preserve"><value>Següent</value></data>
+  <data name="PageOf" xml:space="preserve"><value>Pàgina {0} de {1}</value></data>
+  <data name="TransferPrice" xml:space="preserve"><value>Preu</value></data>
+  <data name="MarketValue" xml:space="preserve"><value>Valor de mercat</value></data>
+  <data name="TransferHistory" xml:space="preserve"><value>Historial de Fitxatges</value></data>
   <data name="PayPoints" xml:space="preserve"><value>Abonar jornada</value></data>
   <data name="RevertPoints" xml:space="preserve"><value>Revertir abonament</value></data>
   <data name="PayBreak" xml:space="preserve"><value>Abonar paró</value></data>
