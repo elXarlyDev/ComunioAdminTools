@@ -21,6 +21,20 @@
   <data name="Sections" xml:space="preserve"><value>Secciones</value></data>
   <data name="Money" xml:space="preserve"><value>Dinero</value></data>
   <data name="Queries" xml:space="preserve"><value>Consultas</value></data>
+  <data name="Market" xml:space="preserve"><value>Mercado</value></data>
+  <data name="AllUsers" xml:space="preserve"><value>Todos</value></data>
+  <data name="Filters" xml:space="preserve"><value>Filtros</value></data>
+  <data name="Transfers" xml:space="preserve"><value>Fichajes</value></data>
+  <data name="FilterPlayer" xml:space="preserve"><value>Futbolista</value></data>
+  <data name="FilterBuyer" xml:space="preserve"><value>Comprador</value></data>
+  <data name="FilterSeller" xml:space="preserve"><value>Vendedor</value></data>
+  <data name="TransferPages" xml:space="preserve"><value>Páginas del historial de fichajes</value></data>
+  <data name="PreviousPage" xml:space="preserve"><value>Anterior</value></data>
+  <data name="NextPage" xml:space="preserve"><value>Siguiente</value></data>
+  <data name="PageOf" xml:space="preserve"><value>Página {0} de {1}</value></data>
+  <data name="TransferPrice" xml:space="preserve"><value>Precio</value></data>
+  <data name="MarketValue" xml:space="preserve"><value>Valor de mercado</value></data>
+  <data name="TransferHistory" xml:space="preserve"><value>Historial de Fichajes</value></data>
   <data name="PayPoints" xml:space="preserve"><value>Abonar jornada</value></data>
   <data name="RevertPoints" xml:space="preserve"><value>Revertir abono</value></data>
   <data name="PayBreak" xml:space="preserve"><value>Abonar parón</value></data>
