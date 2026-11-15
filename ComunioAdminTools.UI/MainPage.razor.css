@@ -60,6 +60,7 @@
 .action-panel { display: flex; flex-direction: column; gap: 40px; padding: 16px 36px; }
 .money-panel, .query-panel, .squad-panel { gap: 24px; }
 .money-buttons, .query-buttons, .squad-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.money-buttons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .market-panel { gap: 16px; }
 .market-panel .action-button { align-self: flex-start; min-height: 44px; font-size: 12px; }
 .market-results { min-width: 0; }
@@ -128,10 +129,12 @@
     transition: transform 80ms ease;
 }
 .action-button:active:not(:disabled) { transform: scale(.98); }
+.money-panel .action-button > i { margin-right: 6px; }
 .action-button:disabled { opacity: .65; cursor: default; }
 .points, .market, .comunio { background: #0b4d2c; }
 .revert { background: #d9534f; }
 .bonus { background: #5f9ea0; }
+.correction { background: #f0a14a; color: #26332b; }
 .query { background: #6c757d; }
 button:focus-visible, input:focus-visible { outline: 3px solid #0b4d2c; outline-offset: 3px; }
 .overlay {

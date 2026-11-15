@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace ComunioAdminTools.Core.Models;
 
-public sealed class DineroJornadaModel
+public sealed class CashResultModel
 {
     public string UserName { get; init; } = string.Empty;
     public int Amount { get; init; }

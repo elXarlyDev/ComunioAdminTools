@@ -141,7 +141,7 @@ foreach (var language in new[] { AppLocalization.SpanishCulture, AppLocalization
         Check(html.Contains($">{text[TextKey.Money]}</button>") == canManageMoney,
             "Money tab is only rendered for administrators or leaders.");
 
-        foreach (var key in new[] { TextKey.PayPoints, TextKey.PayBreak })
+        foreach (var key in new[] { TextKey.PayPoints, TextKey.PayBreak, TextKey.Correction })
             Check(html.Contains(text[key]) == canManageMoney, "Money actions follow the session permissions.");
 
         Check(!html.Contains(text[TextKey.RevertPoints]), "Revert is hidden before paying a round.");
@@ -192,13 +192,67 @@ await using (var renderer = new HtmlRenderer(services, services.GetRequiredServi
         return await renderer.Dispatcher.InvokeAsync(() => WebUtility.HtmlDecode(root.ToHtmlString()));
     }
 
+    async Task<string> ConfirmPayment(string methodName)
+    {
+        await Click(methodName);
+        return await Click("ConfirmCashPlan");
+    }
+
     var initialHtml = await renderer.Dispatcher.InvokeAsync(() => root.ToHtmlString());
 
     Check(!System.Text.RegularExpressions.Regex.IsMatch(initialHtml, "<header[^>]*\\binert(?:[=\\s>])")
         && !System.Text.RegularExpressions.Regex.IsMatch(initialHtml, "<button[^>]*class=\"action-button sign-out\"[^>]*\\bdisabled(?:[=\\s>])"),
         "The idle header is interactive and sign-out is enabled.");
 
-    var html = await Click("PayRoundPoints");
+    foreach (var (method, expectedAmount) in new[]
+        {
+            ("PayRoundPoints", 200_000), ("RevertRoundPoints", -200_000), ("PayInternationalBreak", 5_000_000),
+            ("CorrectRoundPoints", 100_000)
+        })
+    {
+        var previousPayments = api.PaymentAttempts;
+        var preview = await Click(method);
+
+        Check(preview.Contains("class=\"cash-confirmation\"") && preview.Contains("Player A")
+            && preview.Contains(expectedAmount.ToString("C0", text.Culture))
+            && preview.Contains(text[TextKey.Accept]) && preview.Contains(text[TextKey.Cancel])
+            && api.PaymentAttempts == previousPayments, "All four movements preview their amounts without making payments.");
+
+        var cancelled = await Click("CancelCashPlan");
+
+        Check(!cancelled.Contains("class=\"cash-confirmation\"") && api.PaymentAttempts == previousPayments,
+            "Cancelling a payment confirmation never changes money.");
+    }
+
+    var correctionPreview = await Click("CorrectRoundPoints");
+    var correctionNewsReads = api.NewsRequests;
+    var correctionStandingsReads = api.StandingsRequests;
+    var correctionPaymentStart = api.Payments.Count;
+
+    Check(correctionPreview.Contains((-100_000).ToString("C0", text.Culture)), "Correction previews refunds as negative differences too.");
+    var correctionResult = await Click("ConfirmCashPlan");
+
+    Check(api.Payments.Skip(correctionPaymentStart).Select(payment => payment.Amount).SequenceEqual(new[] { 100_000, -100_000 })
+        && api.NewsRequests == correctionNewsReads && api.StandingsRequests == correctionStandingsReads
+        && correctionResult.Contains(text[TextKey.CorrectionCompleted]) && !correctionResult.Contains("class=\"cash-confirmation\""),
+        "Accepting correction applies the previewed differences and shows inline results without recalculation.");
+
+    var originalStandings = api.Body;
+    await Click("PayRoundPoints");
+    var standingsRequests = api.StandingsRequests;
+    api.Body = """{"items":[{"lastPoints":"100","_embedded":{"user":{"id":"a","name":"Player A"}}}]}""";
+    var paymentStart = api.Payments.Count;
+    var html = await Click("ConfirmCashPlan");
+
+    Check(api.Payments.Skip(paymentStart).Select(payment => payment.Amount).SequenceEqual(new[] { 200_000, 300_000 })
+        && api.StandingsRequests == standingsRequests && !html.Contains("class=\"cash-confirmation\""),
+        "Accept applies exactly the previewed amounts without recalculating, even if current standings changed.");
+
+    var acceptedPayments = api.PaymentAttempts;
+    await Click("ConfirmCashPlan");
+    Check(api.PaymentAttempts == acceptedPayments, "A repeated accept does not duplicate the prepared movements.");
+    api.Body = originalStandings;
+    html = await ConfirmPayment("PayRoundPoints");
 
     Check(html.Contains(text[TextKey.PaidMoney]) && html.Contains("Player A")
         && html.Contains(text[TextKey.RevertPoints]) && !html.Contains("role=\"dialog\""),
@@ -214,15 +268,15 @@ await using (var renderer = new HtmlRenderer(services, services.GetRequiredServi
         && !html.Contains(text[TextKey.Hide]) && html.Contains(text[TextKey.PayPoints]) && html.Contains(text[TextKey.PayBreak]),
         "Hiding round results also removes revert and keeps the payment actions available.");
 
-    await Click("PayRoundPoints");
-    html = await Click("RevertRoundPoints");
+    await ConfirmPayment("PayRoundPoints");
+    html = await ConfirmPayment("RevertRoundPoints");
 
     Check(html.Contains(text[TextKey.RevertedMoney]) && !html.Contains(text[TextKey.RevertPoints])
         && html.Contains(text[TextKey.Hide]) && !html.Contains("role=\"dialog\""),
         "Revert updates inline results, hides its button and offers hide.");
 
-    await Click("PayRoundPoints");
-    html = await Click("PayInternationalBreak");
+    await ConfirmPayment("PayRoundPoints");
+    html = await ConfirmPayment("PayInternationalBreak");
 
     Check(html.Contains(text[TextKey.BreakPaymentCompleted]) && !html.Contains(text[TextKey.RevertPoints])
         && html.Contains(text[TextKey.Hide]) && !html.Contains("role=\"dialog\""),
@@ -232,7 +286,7 @@ await using (var renderer = new HtmlRenderer(services, services.GetRequiredServi
     Check(!html.Contains("class=\"money-results\""), "Break payment results can be hidden.");
 
     api.FailPaymentAt = api.PaymentAttempts + 2;
-    html = await Click("PayRoundPoints");
+    html = await ConfirmPayment("PayRoundPoints");
 
     Check(html.Contains(text[TextKey.IncompleteOperation]) && html.Contains("Player A")
         && !html.Contains(text[TextKey.RevertPoints]) && !html.Contains("role=\"dialog\""),
@@ -241,7 +295,7 @@ await using (var renderer = new HtmlRenderer(services, services.GetRequiredServi
     api.FailPaymentAt = null;
 
     api.TransportError = new HttpRequestException("Simulated network error");
-    html = await Click("PayInternationalBreak");
+    html = await ConfirmPayment("PayInternationalBreak");
 
     Check(html.Contains(text[TextKey.NetworkError]) && html.Contains(text[TextKey.Hide]) && !html.Contains("role=\"dialog\""),
         "Money errors are displayed inline.");
@@ -253,7 +307,7 @@ await using (var renderer = new HtmlRenderer(services, services.GetRequiredServi
 
     api.TransportError = null;
 
-    await Click("PayRoundPoints");
+    await ConfirmPayment("PayRoundPoints");
     html = await Click("ShowPoints");
 
     Check(html.Contains("class=\"query-results\"") && html.Contains(text[TextKey.LastRoundPoints])
@@ -739,6 +793,9 @@ sealed class TestApi : HttpMessageHandler
 {
     public string? LastStandingsQuery { get; private set; }
     public int PaymentAttempts { get; private set; }
+    public List<PostCashRequestModel> Payments { get; } = [];
+    public int StandingsRequests { get; private set; }
+    public int NewsRequests { get; private set; }
     public int? FailPaymentAt { get; set; }
     public bool IsAdmin { get; set; } = true;
     public bool IsLeader { get; set; }
@@ -763,7 +820,12 @@ sealed class TestApi : HttpMessageHandler
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var path = request.RequestUri!.AbsolutePath;
-        if (path.EndsWith("/standings")) LastStandingsQuery = request.RequestUri.Query;
+
+        if (path.EndsWith("/standings"))
+        {
+            LastStandingsQuery = request.RequestUri.Query;
+            StandingsRequests++;
+        }
 
         if (path == "/login")
         {
@@ -787,7 +849,23 @@ sealed class TestApi : HttpMessageHandler
         if (path == "/matchdays")
         {
             return Task.FromResult(Json(HttpStatusCode.OK,
-                """[{"matchdayKey":"9","timestamp":"2026-10-16T21:02:01+02:00","started":true,"finished":false}]"""));
+                """[{"matchdayKey":"9","timestamp":"2026-10-16T21:02:01+02:00","started":true,"finished":true},{"matchdayKey":"10","timestamp":"2026-10-20T10:00:00Z","started":false,"finished":false}]"""));
+        }
+
+        if (path == "/communities/test/users/77/news")
+        {
+            NewsRequests++;
+
+            return Task.FromResult(Json(HttpStatusCode.OK, """
+                {"newsList":{"entries":[
+                    {"id":"future-bonus","date":"2026-10-20T10:00:00Z","type":"TRANSACTION_BONUS","message":{"text":"Abono: 99.000.000 serán abonados a Player A por el administrador de la comunidad (Player B). Razón: Whatever"}},
+                    {"id":"bonus-a","date":"2026-10-18T11:00:00Z","type":"TRANSACTION_BONUS","message":{"text":"Abono: 100.000 serán abonados a Player A por el administrador de la comunidad (Player B). Razón: Whatever"}},
+                    {"id":"bonus-b","date":"2026-10-18T10:00:00Z","type":"TRANSACTION_BONUS","message":{"text":"Abono: 500.000 serán abonados a Player B por el administrador de la comunidad (Player A). Razón: Other"}},
+                    {"id":"penalty-b","date":"2026-10-18T09:00:00Z","type":"TRANSACTION_BONUS","message":{"text":"Pena disciplinaria: 100.000 € han sido restados a Player B por el administrador de la comunidad (Player A). Razón: Punts últims"}},
+                    {"id":"points","date":"2026-10-17T10:00:00Z","type":"SYSTEM_ADMINISTRATION","message":{"type":"POINTS_CALCULATION","matchday":9}},
+                    {"id":"old-bonus","date":"2026-10-16T10:00:00Z","type":"TRANSACTION_BONUS","message":{"text":"Unrelated old payment"}}
+                ],"hasMore":false}}
+                """));
         }
 
         if (path == "/communities/test/users/77/lineup")
@@ -834,11 +912,23 @@ sealed class TestApi : HttpMessageHandler
 
         if (path.EndsWith("/penalties"))
         {
-            PaymentAttempts++;
-            return Task.FromResult(Json(PaymentAttempts == FailPaymentAt ? HttpStatusCode.InternalServerError : HttpStatusCode.OK, "{}"));
+            return Pay(request, cancellationToken);
         }
 
         return Task.FromResult(Json(Status, Status == HttpStatusCode.OK ? Body ?? "{\"items\":[]}" : "EXTERNAL ERROR"));
+    }
+
+    private async Task<HttpResponseMessage> Pay(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        PaymentAttempts++;
+
+        if (PaymentAttempts == FailPaymentAt)
+        {
+            return Json(HttpStatusCode.InternalServerError, "{}");
+        }
+
+        Payments.Add(Newtonsoft.Json.JsonConvert.DeserializeObject<PostCashRequestModel>(await request.Content!.ReadAsStringAsync(cancellationToken))!);
+        return Json(HttpStatusCode.OK, "{}");
     }
 
     private async Task<HttpResponseMessage> SaveLineup(HttpRequestMessage request, CancellationToken cancellationToken)

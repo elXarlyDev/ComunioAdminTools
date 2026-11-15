@@ -7,9 +7,10 @@ namespace ComunioAdminTools.Core.Services;
 internal static class ComunioHttp
 {
     public static async Task<HttpResponseMessage> Send(
-        HttpClient client, HttpRequestMessage request, AppLocalization text, CancellationToken cancellationToken = default)
+        HttpClient client, HttpRequestMessage request, AppLocalization text, CancellationToken cancellationToken = default,
+        HttpCompletionOption completionOption = HttpCompletionOption.ResponseContentRead)
     {
-        try { return await client.SendAsync(request, cancellationToken); }
+        try { return await client.SendAsync(request, completionOption, cancellationToken); }
         catch (HttpRequestException ex) when (ex is not ILocalizedError)
         {
             throw new LocalizedHttpRequestException(text, TextKey.NetworkError, ex.StatusCode, ex);

@@ -10,7 +10,7 @@ Los servicios concretos usan esos métodos heredados, sin inyectarse entre sí.
 | Servicio | Responsabilidad |
 | --- | --- |
 | `CommunityService` | Base abstracta para obtener la sesión y consultar la clasificación de la comunidad. |
-| `CashService` | Abonar dinero por puntos, revertir esos abonos y abonar 5 millones por el parón de selecciones. |
+| `CashService` (`ICashService`) | Preparar y aplicar abonos por puntos, reversiones, abonos de 5 millones y correcciones según noticias. |
 | `PointsService` | Consultar los puntos de la última jornada y las clasificaciones mensuales o por mitades. |
 | `SquadService` (`ISquadService`) | Consultar el exceso de todas las plantillas y el estado detallado de los jugadores del usuario con sesión. |
 
@@ -67,6 +67,37 @@ recarga el perfil. La clasificación se sigue consultando en cada operación.
 Los permisos del perfil permanecen en caché hasta iniciar otra sesión o llamar
 a `AuthService.Logout()`; la API sigue validando cada operación de dinero.
 
+`ICashService.Prepare()` consulta la clasificación y crea un `CashPlan` con los
+usuarios e importes calculados, sin realizar movimientos. La interfaz muestra
+esa instantánea para aceptar o cancelar las cuatro operaciones, incluida la
+reversión con importes negativos. `Apply()` utiliza los mismos importes sin
+recalcular, verifica que sigue siendo la misma sesión y consume el cálculo una
+sola vez. Se mantienen los bloques de hasta 100 puntos y los motivos originales.
+La interfaz inyecta `ICashService` y los resultados usan `CashResultModel`.
+
+`CashOperation.Correction` obtiene la última jornada finalizada y el inicio de
+la siguiente en `matchdays`. Lee `communities/{comunidad}/users/{usuario}/news`
+con `originaltypes=true`, `limit=20` y `start=0,20,40...` hasta encontrar el cálculo
+de puntos de esa jornada y completar su intervalo. Suma todos los
+`TRANSACTION_BONUS` cuya fecha sea mayor o igual a la noticia y menor que el
+inicio siguiente, sin consultar sus razones. Ignora noticias repetidas por id y
+continúa otra página si coincide la fecha límite inferior con el final de página.
+El destinatario se extrae de `message.text` antes del administrador; los importes
+se comparan con los puntos positivos a 100.000 por punto. Solo las diferencias
+no nulas forman el cálculo a confirmar. Fechas ausentes, abonos ilegibles,
+destinatarios ambiguos o páginas repetidas impiden calcular importes incorrectos.
+El lector admite abonos y penas disciplinarias con o sin símbolo €, y convierte
+«han sido restados» en importes negativos sin invertir dos veces un importe ya
+negativo. Se compara el saldo neto de abonos y cargos, manteniendo la exclusión del
+nombre del administrador y sin interpretar la razón del movimiento.
+Las lecturas reciben un `CancellationToken`. Cada página de noticias aplica
+un plazo de 30 segundos a toda la lectura y a su espera, incluso si el transporte
+no atiende la cancelación. Los GET validan el estado HTTP al recibir las cabeceras
+y cancelan también la descarga del cuerpo, manteniendo el timeout del cliente.
+Las trazas de depuración señalan cada etapa sin registrar credenciales ni cuerpos.
+La prueba opcional `dotnet run --project Tests/CashChecks/CashChecks.csproj -- --timeout`
+comprueba además el plazo real de 30 segundos con una respuesta simulada bloqueada.
+
 Los abonos se envían secuencialmente y no se reintentan. Ante un fallo,
 `CashOperationException.ConfirmedPayments` contiene los importes cuya respuesta
 fue satisfactoria, incluidos los bloques completados del usuario que falló.
@@ -81,4 +112,5 @@ Verificación con transportes simulados, sin operaciones reales en Comunio:
 
 ```sh
 dotnet run --project Tests/MigrationChecks/MigrationChecks.csproj
+dotnet run --project Tests/CashChecks/CashChecks.csproj
 ```

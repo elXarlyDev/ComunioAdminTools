@@ -56,17 +56,17 @@ services.AddHttpClient("Comunio").ConfigurePrimaryHttpMessageHandler(() => api);
 using var provider = services.BuildServiceProvider();
 var auth = provider.GetRequiredService<AuthService>();
 await auth.Login("user", "password");
-var cash = provider.GetRequiredService<CashService>();
-var paid = await cash.PayRoundPoints();
+var cash = provider.GetRequiredService<ICashService>();
+var paid = await cash.Apply(await cash.Prepare(CashOperation.RoundPoints));
 Check(api.Payments.Select(x => x.Amount).SequenceEqual([10_000_000, 10_000_000, 5_000_000, 5_000_000]), "Pagos por puntos y bloques de 100.");
 Check(api.Payments.All(x => x.Reason == "PUNTS"), "Motivo de los abonos.");
 Check(paid.Count == 4 && paid[0].Amount == 25_000_000 && paid.Count(x => x.Amount == 0) == 2, "Resultados ordenados e importes cero.");
 api.Payments.Clear();
-await cash.RevertRoundPoints();
+await cash.Apply(await cash.Prepare(CashOperation.RevertRoundPoints));
 Check(api.Payments.Select(x => x.Amount).SequenceEqual([-10_000_000, -10_000_000, -5_000_000, -5_000_000]), "Reversion de puntos.");
-Check(api.Payments.All(x => x.Reason == "CORREGIR ERROR PUNTS"), "Motivo de la reversion.");
+Check(api.Payments.All(x => x.Reason == "REVERTIR PUNTS"), "Motivo de la reversion.");
 api.Payments.Clear();
-await cash.PayInternationalBreak();
+await cash.Apply(await cash.Prepare(CashOperation.InternationalBreak));
 Check(api.Payments.Count == 4 && api.Payments.All(x => x.Amount == 5_000_000 && x.Reason == "PARÓ SELECCIONS"), "Abono de 5M para todos.");
 api.Payments.Clear();
 var points = await provider.GetRequiredService<PointsService>().GetLastRoundPoints();
@@ -94,7 +94,7 @@ api.FailAtPayment = 3;
 
 try
 {
-    await cash.PayRoundPoints();
+    await cash.Apply(await cash.Prepare(CashOperation.RoundPoints));
     throw new Exception("Se esperaba un fallo parcial.");
 }
 catch (CashOperationException ex)

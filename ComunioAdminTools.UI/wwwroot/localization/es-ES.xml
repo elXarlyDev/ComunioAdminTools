@@ -19,8 +19,8 @@
   <data name="SignedIn" xml:space="preserve"><value>Sesión de Comunio iniciada.</value></data>
   <data name="Connecting" xml:space="preserve"><value>Conectando…</value></data>
   <data name="Sections" xml:space="preserve"><value>Secciones</value></data>
-  <data name="Money" xml:space="preserve"><value>Dinero</value></data>
-  <data name="Queries" xml:space="preserve"><value>Consultas</value></data>
+  <data name="Money" xml:space="preserve"><value>Abonos</value></data>
+  <data name="Queries" xml:space="preserve"><value>Puntos</value></data>
   <data name="Squad" xml:space="preserve"><value>Plantilla</value></data>
   <data name="SquadStatus" xml:space="preserve"><value>Alineación</value></data>
   <data name="Starters" xml:space="preserve"><value>Titulares</value></data>
@@ -58,9 +58,23 @@
   <data name="TransferPrice" xml:space="preserve"><value>Precio</value></data>
   <data name="MarketValue" xml:space="preserve"><value>Valor de mercado</value></data>
   <data name="TransferHistory" xml:space="preserve"><value>Historial de Fichajes</value></data>
-  <data name="PayPoints" xml:space="preserve"><value>Abonar jornada</value></data>
-  <data name="RevertPoints" xml:space="preserve"><value>Revertir abono</value></data>
-  <data name="PayBreak" xml:space="preserve"><value>Abonar parón</value></data>
+  <data name="PayPoints" xml:space="preserve"><value>Jornada</value></data>
+  <data name="Correction" xml:space="preserve"><value>Corrección</value></data>
+  <data name="CorrectionCompleted" xml:space="preserve"><value>Corrección aplicada</value></data>
+  <data name="NoCorrectionsNeeded" xml:space="preserve"><value>Los abonos coinciden con los puntos de la última jornada. No hay importes que corregir.</value></data>
+  <data name="NoFinishedMatchday" xml:space="preserve"><value>No hay una jornada finalizada para calcular la corrección.</value></data>
+  <data name="NoNextMatchday" xml:space="preserve"><value>No se conoce la fecha de inicio de la jornada siguiente para delimitar los abonos.</value></data>
+  <data name="PointsCalculationNewsNotFound" xml:space="preserve"><value>No se ha encontrado la noticia del cálculo de puntos de la última jornada.</value></data>
+  <data name="NewsRequestTimeout" xml:space="preserve"><value>La consulta de noticias ha superado el tiempo de espera. Vuelve a intentarlo.</value></data>
+  <data name="UnreadableBonusNews" xml:space="preserve"><value>No se puede interpretar el formato o el importe de la noticia {0}: {1}</value></data>
+  <data name="BonusRecipientNotFound" xml:space="preserve"><value>El destinatario «{0}» de la noticia {1} no coincide con ningún usuario de la clasificación.</value></data>
+  <data name="AmbiguousBonusRecipient" xml:space="preserve"><value>El destinatario «{0}» de la noticia {1} coincide con varios usuarios de la clasificación.</value></data>
+  <data name="CashConfirmationMessage" xml:space="preserve"><value>¿Quieres aplicar los siguientes importes a cada usuario?</value></data>
+  <data name="CashPlanExpired" xml:space="preserve"><value>Este cálculo ya se ha aplicado o la sesión ha cambiado. Vuelve a preparar la operación.</value></data>
+  <data name="Accept" xml:space="preserve"><value>Aceptar</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancelar</value></data>
+  <data name="RevertPoints" xml:space="preserve"><value>Revertir</value></data>
+  <data name="PayBreak" xml:space="preserve"><value>Parón</value></data>
   <data name="QueryPoints" xml:space="preserve"><value>Últimos puntos</value></data>
   <data name="QuerySquads" xml:space="preserve"><value>Exceso plantilla</value></data>
   <data name="Loading" xml:space="preserve"><value>Cargando…</value></data>

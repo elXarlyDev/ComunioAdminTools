@@ -14,7 +14,7 @@ public abstract class CommunityService(IHttpClientFactory factory, ISessionManag
 
     protected string GetCommunityUriPart() => $"communities/{Uri.EscapeDataString(Session.Community.Id)}";
 
-    protected async Task<StandingsModel> GetStandings() =>
-        await Get<StandingsModel>($"communities/{Uri.EscapeDataString(Session.Community.Id)}/standings?period=total&wpe=true");
+    protected async Task<StandingsModel> GetStandings(CancellationToken cancellationToken = default) =>
+        await Get<StandingsModel>($"communities/{Uri.EscapeDataString(Session.Community.Id)}/standings?period=total&wpe=true", cancellationToken);
     
 }

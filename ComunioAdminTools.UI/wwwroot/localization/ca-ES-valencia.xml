@@ -19,8 +19,8 @@
   <data name="SignedIn" xml:space="preserve"><value>Sessió de Comunio iniciada.</value></data>
   <data name="Connecting" xml:space="preserve"><value>Connectant…</value></data>
   <data name="Sections" xml:space="preserve"><value>Seccions</value></data>
-  <data name="Money" xml:space="preserve"><value>Diners</value></data>
-  <data name="Queries" xml:space="preserve"><value>Consultes</value></data>
+  <data name="Money" xml:space="preserve"><value>Abonaments</value></data>
+  <data name="Queries" xml:space="preserve"><value>Punts</value></data>
   <data name="Squad" xml:space="preserve"><value>Plantilla</value></data>
   <data name="SquadStatus" xml:space="preserve"><value>Alineació</value></data>
   <data name="Starters" xml:space="preserve"><value>Titulars</value></data>
@@ -58,9 +58,23 @@
   <data name="TransferPrice" xml:space="preserve"><value>Preu</value></data>
   <data name="MarketValue" xml:space="preserve"><value>Valor de mercat</value></data>
   <data name="TransferHistory" xml:space="preserve"><value>Historial de Fitxatges</value></data>
-  <data name="PayPoints" xml:space="preserve"><value>Abonar jornada</value></data>
-  <data name="RevertPoints" xml:space="preserve"><value>Revertir abonament</value></data>
-  <data name="PayBreak" xml:space="preserve"><value>Abonar paró</value></data>
+  <data name="PayPoints" xml:space="preserve"><value>Jornada</value></data>
+  <data name="Correction" xml:space="preserve"><value>Correcció</value></data>
+  <data name="CorrectionCompleted" xml:space="preserve"><value>Correcció aplicada</value></data>
+  <data name="NoCorrectionsNeeded" xml:space="preserve"><value>Els abonaments coincidixen amb els punts de l'última jornada. No hi ha imports per corregir.</value></data>
+  <data name="NoFinishedMatchday" xml:space="preserve"><value>No hi ha una jornada finalitzada per a calcular la correcció.</value></data>
+  <data name="NoNextMatchday" xml:space="preserve"><value>No es coneix la data d'inici de la jornada següent per a delimitar els abonaments.</value></data>
+  <data name="PointsCalculationNewsNotFound" xml:space="preserve"><value>No s'ha trobat la notícia del càlcul de punts de l'última jornada.</value></data>
+  <data name="NewsRequestTimeout" xml:space="preserve"><value>La consulta de notícies ha superat el temps d'espera. Torna a intentar-ho.</value></data>
+  <data name="UnreadableBonusNews" xml:space="preserve"><value>No es pot interpretar el format o l'import de la notícia {0}: {1}</value></data>
+  <data name="BonusRecipientNotFound" xml:space="preserve"><value>El destinatari «{0}» de la notícia {1} no coincidix amb cap usuari de la classificació.</value></data>
+  <data name="AmbiguousBonusRecipient" xml:space="preserve"><value>El destinatari «{0}» de la notícia {1} coincidix amb diversos usuaris de la classificació.</value></data>
+  <data name="CashConfirmationMessage" xml:space="preserve"><value>Vols aplicar els imports següents a cada usuari?</value></data>
+  <data name="CashPlanExpired" xml:space="preserve"><value>Este càlcul ja s'ha aplicat o la sessió ha canviat. Torna a preparar l'operació.</value></data>
+  <data name="Accept" xml:space="preserve"><value>Acceptar</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Cancel·lar</value></data>
+  <data name="RevertPoints" xml:space="preserve"><value>Revertir</value></data>
+  <data name="PayBreak" xml:space="preserve"><value>Paró</value></data>
   <data name="QueryPoints" xml:space="preserve"><value>Últims punts</value></data>
   <data name="QuerySquads" xml:space="preserve"><value>Excés plantilla</value></data>
   <data name="Loading" xml:space="preserve"><value>Carregant…</value></data>

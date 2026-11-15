@@ -18,7 +18,7 @@ public static class DependencyInjection
         services.AddSingleton<ISessionManager, SessionManager>();
         services.AddSingleton<AuthService>();
         services.AddTransient<ComunioAuthHandler>();
-        services.AddTransient<CashService>();
+        services.AddTransient<ICashService, CashService>();
         services.AddTransient<PointsService>();
         services.AddTransient<IPointsService>(provider => provider.GetRequiredService<PointsService>());
         services.AddTransient<SquadService>();

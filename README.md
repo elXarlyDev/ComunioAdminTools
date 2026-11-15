@@ -144,12 +144,39 @@ entre Web y Mobile y el idioma elegido se conserva al cambiar de pantalla.
 MainPage incluye la pestaña de dinero únicamente si el usuario de la sesión es
 administrador o líder (`IsAdmin` o `IsLeader`). Las consultas están disponibles
 para todos los usuarios con sesión.
-Los resultados y errores de Dinero se muestran dentro de su pestaña. Los botones
-Abonar jornada y Abonar parón comparten una fila; Revertir abono aparece debajo
+Los resultados y errores de Abonos se muestran dentro de su pestaña. Los botones
+Jornada (icono de euro), Parón (planeta Tierra) y Corrección (euro, naranja claro)
+comparten una fila; Revertir
+(icono de euro) aparece debajo
 del resultado de una jornada abonada correctamente con importes positivos, y
 desaparece al revertir o ejecutar otro abono. Los fallos parciales muestran los
 importes confirmados, sin ofrecer una reversión completa de la jornada.
-Consultas usa los botones Últimos puntos y Clasificaciones, en una fila compacta.
+Jornada, Parón, Corrección y Revertir calculan primero los importes por
+usuario y los muestran en un modal de confirmación. Revertir muestra importes
+negativos. Aceptar, en verde, ejecuta exactamente ese cálculo sin consultar de
+nuevo los puntos; Cancelar, en gris, cierra el modal sin realizar movimientos y
+mantiene los resultados anteriores. Al aceptar, los resultados vuelven a mostrarse
+dentro de Abonos. Cada cálculo solo puede ejecutarse una vez y se descarta si
+cambia la sesión. Los resultados de abonos utilizan `CashResultModel`.
+Corrección localiza la noticia `SYSTEM_ADMINISTRATION` / `POINTS_CALCULATION`
+de la última jornada finalizada. Consulta noticias en páginas de veinte, con
+`start=0,20,40...` y `limit=20`, y suma todos los `TRANSACTION_BONUS` desde la
+fecha de esa noticia, incluida, hasta el inicio de la jornada siguiente, excluido.
+No distingue razones de abono. Extrae el destinatario anterior a la referencia al
+administrador, sin contar el nombre de este entre paréntesis. La diferencia es
+el importe por puntos positivos de la jornada menos lo ya abonado: se muestra
+positiva para abonar y negativa para retirar, sin incluir usuarios sin diferencias.
+Si falta una fecha necesaria, la noticia de cálculo o un abono no puede asociarse
+de forma inequívoca, no se prepara una corrección. Si todo coincide, se informa
+en el modal sin permitir movimientos innecesarios.
+Los textos «Pena disciplinaria… han sido restados…» se contabilizan como cargos
+negativos, incluidos los que muestran el símbolo €, para calcular el saldo neto
+ya aplicado y evitar repetir una corrección anterior.
+Cada página de noticias tiene un límite de espera de 30 segundos que incluye
+la descarga del cuerpo. Si no termina, se cancela la espera y se muestra un error.
+En depuración, las trazas `Comunio GET` distinguen envío, cabeceras, lectura del
+cuerpo y procesamiento del JSON, sin registrar tokens ni contenido de las noticias.
+Puntos usa los botones Últimos puntos y Clasificaciones, en una fila compacta.
 Sus resultados, estados vacíos y errores aparecen en la misma pestaña, con Ocultar
 alineado a la derecha. Cada pestaña conserva sus resultados de forma independiente.
 La pestaña Plantilla está disponible para todos los usuarios con sesión y contiene
@@ -260,6 +287,7 @@ dotnet build ComunioAdminTools.Mobile/ComunioAdminTools.Mobile.csproj -f net10.0
 dotnet run --project Tests/MigrationChecks/MigrationChecks.csproj
 dotnet run --project Tests/LocalizationChecks/LocalizationChecks.csproj
 dotnet run --project Tests/SquadChecks/SquadChecks.csproj
+dotnet run --project Tests/CashChecks/CashChecks.csproj
 dotnet run --project Tests/MarketChecks/MarketChecks.csproj
 ```
 

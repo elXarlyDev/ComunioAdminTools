@@ -7,7 +7,7 @@
 @inject NavigationManager Navigation
 @inject AuthService Auth
 @inject ISessionManager Session
-@inject CashService Cash
+@inject ICashService Cash
 @inject IPointsService Points
 @inject ISquadService Squads
 @inject IMarketService Market
@@ -54,6 +54,7 @@
     private bool busy = true;
     private bool queryResultsVisible;
     private MoneyResult? moneyResult;
+    private CashPlan? pendingCashPlan;
     private TextKey titleKey = TextKey.Results;
     private SquadExcessResult? squadResult;
     private Exception? squadError;
@@ -132,10 +133,16 @@
     private RenderFragment MoneyActions => @<div class="action-panel money-panel">
         <div class="money-buttons">
             <button type="button" class="action-button points" disabled="@(busy)" @onclick="PayRoundPoints">
+                <i class="fa-solid fa-euro-sign" aria-hidden="true"></i>
                 @Text[TextKey.PayPoints]
             </button>
             <button type="button" class="action-button bonus" disabled="@(busy)" @onclick="PayInternationalBreak">
+                <i class="fa-solid fa-earth-europe" aria-hidden="true"></i>
                 @Text[TextKey.PayBreak]
+            </button>
+            <button type="button" class="action-button correction" disabled="@(busy)" @onclick="CorrectRoundPoints">
+                <i class="fa-solid fa-euro-sign" aria-hidden="true"></i>
+                @Text[TextKey.Correction]
             </button>
         </div>
         @if (moneyResult is { } result)
@@ -147,6 +154,7 @@
                     @if (CanRevertRound)
                     {
                         <button type="button" class="action-button revert" disabled="@(busy)" @onclick="RevertRoundPoints">
+                            <i class="fa-solid fa-euro-sign" aria-hidden="true"></i>
                             @Text[TextKey.RevertPoints]
                         </button>
                     }
@@ -155,6 +163,10 @@
                     </button>
                 </div>
             </section>
+        }
+        @if (pendingCashPlan is { } plan)
+        {
+            <CashConfirmation Plan="plan" Accepted="ConfirmCashPlan" Cancelled="CancelCashPlan" />
         }
     </div>;
 
@@ -542,14 +554,44 @@
 
     private Task Logout() => Run(() => Auth.Logout(), requiresSession: false);
 
-    private Task PayRoundPoints() => RunMoney(Cash.PayRoundPoints, TextKey.PaidMoney);
+    private Task PayRoundPoints() => PrepareCashOperation(CashOperation.RoundPoints);
 
-    private Task RevertRoundPoints() => RunMoney(Cash.RevertRoundPoints, TextKey.RevertedMoney);
+    private Task RevertRoundPoints() => PrepareCashOperation(CashOperation.RevertRoundPoints);
 
-    private Task PayInternationalBreak() => RunMoney(
-        Cash.PayInternationalBreak, TextKey.PaymentCompleted, TextKey.BreakPaymentCompleted);
+    private Task PayInternationalBreak() => PrepareCashOperation(CashOperation.InternationalBreak);
 
-    private Task RunMoney(Func<Task<IReadOnlyList<DineroJornadaModel>>> action, TextKey title, TextKey? message = null)
+    private Task CorrectRoundPoints() => PrepareCashOperation(CashOperation.Correction);
+
+    private Task PrepareCashOperation(CashOperation operation) => Run(async () =>
+    {
+        pendingCashPlan = null;
+        pendingCashPlan = await Cash.Prepare(operation);
+    }, moneyAction: true);
+
+    private Task ConfirmCashPlan()
+    {
+        if (busy || pendingCashPlan is not { } plan)
+        {
+            return Task.CompletedTask;
+        }
+
+        pendingCashPlan = null;
+
+        var title = plan.Operation switch
+        {
+            CashOperation.RoundPoints => TextKey.PaidMoney,
+            CashOperation.RevertRoundPoints => TextKey.RevertedMoney,
+            CashOperation.Correction => TextKey.CorrectionCompleted,
+            _ => TextKey.PaymentCompleted
+        };
+
+        return RunMoney(() => Cash.Apply(plan), title,
+            plan.Operation == CashOperation.InternationalBreak ? TextKey.BreakPaymentCompleted : null);
+    }
+
+    private void CancelCashPlan() => pendingCashPlan = null;
+
+    private Task RunMoney(Func<Task<IReadOnlyList<CashResultModel>>> action, TextKey title, TextKey? message = null)
         => Run(async () =>
         {
             moneyResult = null;
@@ -808,6 +850,8 @@
             return;
         }
 
+        pendingCashPlan = null;
+
         try { UpdateSession(); }
         catch { hasSession = false; sessionUsername = ""; }
 
@@ -818,7 +862,7 @@
 
     private sealed record MoneyResult(
         TextKey Title,
-        IReadOnlyList<DineroJornadaModel> Values,
+        IReadOnlyList<CashResultModel> Values,
         TextKey? Message = null,
         Exception? Error = null);
 }
