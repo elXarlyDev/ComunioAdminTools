@@ -47,7 +47,7 @@
     font-size: 12px;
     color: rgb(255 255 255 / 85%);
 }
-.session-header .sign-out {
+.session-header ::deep .sign-out {
     flex-shrink: 0;
     min-height: 40px;
     padding: 8px 12px;
@@ -55,12 +55,12 @@
     border-radius: 8px;
     background: transparent;
 }
-.session-header .sign-out:hover:not(:disabled) { background: rgb(255 255 255 / 15%); }
-.session-header .sign-out:focus-visible { outline-color: white; }
+.session-header ::deep .sign-out:hover:not(:disabled) { box-shadow: inset 0 0 0 100px rgb(255 255 255 / 15%); }
+.session-header ::deep .sign-out:focus-visible { outline-color: white; }
 .action-panel { display: flex; flex-direction: column; gap: 40px; padding: 16px 36px; }
-.money-panel, .query-panel { gap: 24px; }
-.money-buttons, .query-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.query-buttons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.money-panel, .query-panel, .squad-panel { gap: 24px; }
+.money-buttons, .query-buttons, .squad-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.money-buttons { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .market-panel { gap: 16px; }
 .market-panel .action-button { align-self: flex-start; min-height: 44px; font-size: 12px; }
 .market-results { min-width: 0; }
@@ -72,7 +72,7 @@
 .market-filters input, .market-filters select { box-sizing: border-box; width: 100%; min-height: 44px; padding: 8px; border: 1px solid #d7ded9; border-radius: 8px; background: white; color: #26332b; font: inherit; font-size: 14px; }
 .market-filters select:focus-visible { outline: 3px solid #0b4d2c; outline-offset: 3px; }
 .market-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; font-size: 12px; }
-.transfer-grid { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.transfer-grid, .squad-status-grid { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .transfer-row { padding: 10px 12px; border: 1px solid #d7ded9; border-radius: 8px; background: #f5f7f5; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
 .transfer-club, .transfer-row time { color: #526159; }
 .classification-filters { display: flex; gap: 12px; }
@@ -90,11 +90,32 @@
     font-size: 14px;
 }
 .classification-filters select:focus-visible { outline: 3px solid #0b4d2c; outline-offset: 3px; }
-.money-panel .action-button, .query-panel .action-button { min-height: 44px; font-size: 12px; }
-.money-results, .query-results { min-width: 0; overflow-wrap: anywhere; }
-.money-results h2, .query-results h2 { margin: 0 0 16px; color: #0b4d2c; font-size: 18px; }
-.money-result-actions, .query-result-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
-.money-result-actions .query, .query-result-actions .query { margin-left: auto; }
+.money-panel .action-button, .query-panel .action-button, .squad-panel .action-button { min-height: 44px; font-size: 12px; }
+.money-results, .query-results, .squad-results, .squad-status-results { min-width: 0; overflow-wrap: anywhere; }
+.money-results h2, .query-results h2, .squad-results h2, .squad-status-results h2 { margin: 0 0 16px; color: #0b4d2c; font-size: 18px; }
+.squad-lineup { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 16px; }
+.squad-lineup section { min-width: 0; }
+.squad-lineup h3 { margin: 0 0 12px; color: #0b4d2c; font-size: 16px; }
+.lineup-player { display: flex; align-items: center; gap: 8px; min-height: 78px; box-sizing: border-box; }
+.lineup-player ::deep .player-card { flex: 1; min-width: 0; }
+.empty-slot { flex: 1; color: #526159; text-align: center; font-size: 22px; }
+.empty-keeper { background: #946b1b26; border-color: #946b1b66; }
+.empty-defender { background: #237a3b26; border-color: #237a3b66; }
+.empty-midfielder { background: #2459a626; border-color: #2459a666; }
+.empty-striker { background: #c1333326; border-color: #c1333366; }
+.squad-title { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.squad-title h2 { margin: 0; }
+.squad-excess-note { margin: 0 0 16px; color: #526159; font-size: 12px; line-height: 1.5; }
+.formation-picker { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 14px; }
+.formation-picker select { min-height: 44px; padding: 8px 12px; border: 1px solid #d7ded9; border-radius: 8px; background: white; color: #26332b; font: inherit; }
+.lineup-player[data-lineup-player] { cursor: grab; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.lineup-player.drag-selected { opacity: .4; }
+.squad-lineup .lineup-drop-target { outline: 2px dashed #0b4d2c; outline-offset: 2px; background: #dcebe2; }
+.squad-lineup [tabindex]:focus-visible { outline: 3px solid #0b4d2c; outline-offset: 2px; }
+[data-lineup-bench] { min-height: 100px; }
+.money-result-actions, .query-result-actions, .squad-result-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+.money-result-actions .query, .query-result-actions .query, .squad-result-actions .query { margin-left: auto; }
+.save-lineup { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .action-button {
     min-height: 52px;
     border: 0;
@@ -108,11 +129,12 @@
     transition: transform 80ms ease;
 }
 .action-button:active:not(:disabled) { transform: scale(.98); }
+.money-panel .action-button > i { margin-right: 6px; }
 .action-button:disabled { opacity: .65; cursor: default; }
-.points { background: #0b4d2c; }
-.market { background: #0b4d2c; }
+.points, .market, .comunio { background: #0b4d2c; }
 .revert { background: #d9534f; }
 .bonus { background: #5f9ea0; }
+.correction { background: #f0a14a; color: #26332b; }
 .query { background: #6c757d; }
 button:focus-visible, input:focus-visible { outline: 3px solid #0b4d2c; outline-offset: 3px; }
 .overlay {
@@ -147,10 +169,6 @@ button:focus-visible, input:focus-visible { outline: 3px solid #0b4d2c; outline-
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (max-width: 380px) {
     .action-panel { padding-right: 20px; padding-left: 20px; }
-}
-@media (max-width: 480px) {
-    .query-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .query-buttons .action-button:last-child { grid-column: 1 / -1; }
 }
 @media (prefers-reduced-motion: reduce) {
     .action-button { transition: none; }

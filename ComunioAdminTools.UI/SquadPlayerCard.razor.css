@@ -1,0 +1,9 @@
+.player-card { flex: 1; min-width: 0; }
+.player-club { color: #526159; }
+.player-status { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+.position-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; padding: 2px 6px; border-radius: 4px; color: white; font-size: 12px; font-weight: 700; }
+.position-keeper { background: #946b1b; }
+.position-defender { background: #237a3b; }
+.position-midfielder { background: #2459a6; }
+.position-striker { background: #c13333; }
+.position-unknown { background: #6c757d; }

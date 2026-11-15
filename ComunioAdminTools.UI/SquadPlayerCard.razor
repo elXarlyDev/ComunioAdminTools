@@ -1,0 +1,27 @@
+@using ComunioAdminTools.Core.Models
+
+<div class="player-card">
+    <div><strong>@Player.Name</strong> <span class="player-club">(@(Player.Club?.Name ?? "—"))</span></div>
+    <div class="player-status">
+        <span class="position-badge @PositionBadge.CssClass">@PositionBadge.Label</span>
+        <PlayerStatusIcon Status="Player.Status" />
+    </div>
+    @if (Player.Status != PlayerStatus.Active
+        && !string.IsNullOrWhiteSpace(Player.StatusInfo))
+    {
+        <div>(@Player.StatusInfo)</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public PlayerDetailsModel Player { get; set; } = default!;
+
+    private (string Label, string CssClass) PositionBadge => Player.Position switch
+    {
+        PlayerPosition.Keeper => ("PT", "position-keeper"),
+        PlayerPosition.Defender => ("DF", "position-defender"),
+        PlayerPosition.Midfielder => ("MC", "position-midfielder"),
+        PlayerPosition.Striker => ("DL", "position-striker"),
+        _ => ("—", "position-unknown")
+    };
+}

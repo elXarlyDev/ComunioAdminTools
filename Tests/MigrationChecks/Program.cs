@@ -11,15 +11,19 @@ using Newtonsoft.Json.Linq;
 
 static void Check(bool value, string message)
 {
-    if (!value) throw new Exception(message);
+    if (!value)
+    {
+        throw new Exception(message);
+    }
 }
 
-static async Task CheckSessionClearedAsync(ISessionManager session, string message)
+static async Task CheckSessionCleared(ISessionManager session, string message)
 {
     Check(session.Session is null, message);
+
     try
     {
-        await session.GetValidAccessTokenAsync();
+        await session.GetValidAccessToken();
         throw new Exception(message);
     }
     catch (AuthenticationRequiredException ex)
@@ -37,6 +41,7 @@ foreach (var (today, expectedStart, expectedCount) in new[]
 })
 {
     var months = SeasonCalendar.GetMonths(today);
+
     Check(months.Count == expectedCount && months[0] == expectedStart
         && months[^1] == new DateOnly(today.Year, today.Month, 1)
         && months.SequenceEqual(Enumerable.Range(0, expectedCount).Select(expectedStart.AddMonths)),
@@ -50,77 +55,86 @@ services.AddHttpClient("ComunioAuth").ConfigurePrimaryHttpMessageHandler(() => a
 services.AddHttpClient("Comunio").ConfigurePrimaryHttpMessageHandler(() => api);
 using var provider = services.BuildServiceProvider();
 var auth = provider.GetRequiredService<AuthService>();
-await auth.LoginAsync("user", "password");
-var cash = provider.GetRequiredService<CashService>();
-var paid = await cash.PayRoundPointsAsync();
+await auth.Login("user", "password");
+var cash = provider.GetRequiredService<ICashService>();
+var paid = await cash.Apply(await cash.Prepare(CashOperation.RoundPoints));
 Check(api.Payments.Select(x => x.Amount).SequenceEqual([10_000_000, 10_000_000, 5_000_000, 5_000_000]), "Pagos por puntos y bloques de 100.");
 Check(api.Payments.All(x => x.Reason == "PUNTS"), "Motivo de los abonos.");
 Check(paid.Count == 4 && paid[0].Amount == 25_000_000 && paid.Count(x => x.Amount == 0) == 2, "Resultados ordenados e importes cero.");
 api.Payments.Clear();
-await cash.RevertRoundPointsAsync();
+await cash.Apply(await cash.Prepare(CashOperation.RevertRoundPoints));
 Check(api.Payments.Select(x => x.Amount).SequenceEqual([-10_000_000, -10_000_000, -5_000_000, -5_000_000]), "Reversion de puntos.");
-Check(api.Payments.All(x => x.Reason == "CORREGIR ERROR PUNTS"), "Motivo de la reversion.");
+Check(api.Payments.All(x => x.Reason == "REVERTIR PUNTS"), "Motivo de la reversion.");
 api.Payments.Clear();
-await cash.PayInternationalBreakAsync();
+await cash.Apply(await cash.Prepare(CashOperation.InternationalBreak));
 Check(api.Payments.Count == 4 && api.Payments.All(x => x.Amount == 5_000_000 && x.Reason == "PARÓ SELECCIONS"), "Abono de 5M para todos.");
 api.Payments.Clear();
-var points = await provider.GetRequiredService<PointsService>().GetLastRoundPointsAsync();
+var points = await provider.GetRequiredService<PointsService>().GetLastRoundPoints();
 Check(points.Select(x => x.Points).SequenceEqual([250, 50, 0, -3]), "Consulta y ordenacion de puntos.");
-var excess = await provider.GetRequiredService<SquadService>().GetSquadExcessAsync();
+var excess = await provider.GetRequiredService<SquadService>().GetSquadExcess();
+
 Check(excess.Squads.Count == 4 && excess.Squads[0].UserName == "A" && excess.Squads[0].PlayerCount == 26
     && excess.Squads.Any(row => row.PlayerCount == 25) && excess.Squads.Any(row => row.PlayerCount == 24),
     "La consulta de plantillas incluye todos los usuarios, dentro y fuera del limite de 25.");
+
 Check(api.Payments.Count == 0 && api.ProfileRequests == 1, "Consultas sin pagos y reutilizacion del perfil.");
 var pointsService = provider.GetRequiredService<IPointsService>();
-await pointsService.GetMonthlyStandingsAsync(2026, 8);
+await pointsService.GetMonthlyStandings(2026, 8);
 Check(api.LastStandingsQuery == "?period=month&year=2026&month=8", "Clasificacion mensual con year y month, sin wpe.");
-await pointsService.GetMonthlyStandingsAsync(2027, 1);
+await pointsService.GetMonthlyStandings(2027, 1);
 Check(api.LastStandingsQuery == "?period=month&year=2027&month=1", "La consulta mensual conserva el año del mes seleccionado.");
-await pointsService.GetFirstHalfStandingsAsync();
+await pointsService.GetFirstHalfStandings();
 Check(api.LastStandingsQuery == "?period=firstHalf&wpe=true", "Clasificacion de primera mitad.");
-await pointsService.GetSecondHalfStandingsAsync();
+await pointsService.GetSecondHalfStandings();
 Check(api.LastStandingsQuery == "?period=secondHalf&wpe=true", "Clasificacion de segunda mitad.");
-await pointsService.GetSeasonStandingsAsync();
+await pointsService.GetSeasonStandings();
 Check(api.LastStandingsQuery == "?period=total", "Clasificacion de temporada sin parametros adicionales.");
 Check(api.Payments.Count == 0 && api.ProfileRequests == 1, "Clasificaciones sin pagos ni recarga del perfil.");
 api.FailAtPayment = 3;
+
 try
 {
-    await cash.PayRoundPointsAsync();
+    await cash.Apply(await cash.Prepare(CashOperation.RoundPoints));
     throw new Exception("Se esperaba un fallo parcial.");
 }
 catch (CashOperationException ex)
 {
     Check(ex.ConfirmedPayments.Single().Amount == 20_000_000 && api.PaymentAttempts == 3, "Conservar bloques confirmados, detenerse y no reintentar.");
 }
-await auth.LogoutAsync();
-await CheckSessionClearedAsync(provider.GetRequiredService<ISessionManager>(), "Logout elimina tokens y perfil.");
+
+await auth.Logout();
+await CheckSessionCleared(provider.GetRequiredService<ISessionManager>(), "Logout elimina tokens y perfil.");
 api.FailProfile = true;
+
 try
 {
-    await auth.LoginAsync("user", "password");
+    await auth.Login("user", "password");
     throw new Exception("Se esperaba un fallo al cargar el perfil.");
 }
 catch (AuthenticationRequiredException)
 {
-    await CheckSessionClearedAsync(provider.GetRequiredService<ISessionManager>(),
+    await CheckSessionCleared(provider.GetRequiredService<ISessionManager>(),
         "Un login fallido elimina tokens y perfil.");
 }
+
 try
 {
-    await provider.GetRequiredService<ISessionManager>().LoadAsync(new("test", "refresh", DateTimeOffset.UtcNow.AddMinutes(30)));
+    await provider.GetRequiredService<ISessionManager>().Load(new("test", "refresh", DateTimeOffset.UtcNow.AddMinutes(30)));
     throw new Exception("Se esperaba un fallo al cargar el perfil directamente.");
 }
 catch (HttpRequestException)
 {
-    await CheckSessionClearedAsync(provider.GetRequiredService<ISessionManager>(),
-        "LoadAsync limpia tokens y perfil por si mismo cuando falla la carga.");
+    await CheckSessionCleared(provider.GetRequiredService<ISessionManager>(),
+        "Load limpia tokens y perfil por si mismo cuando falla la carga.");
 }
+
 api.FailProfile = false;
-await auth.LoginAsync("user", "password");
+await auth.Login("user", "password");
+
 Check(provider.GetRequiredService<ISessionManager>().Session!.User.Name == "Admin",
     "Se puede volver a iniciar sesion tras un fallo de perfil.");
-await auth.LogoutAsync();
+
+await auth.Logout();
 using var otherClient = services.BuildServiceProvider();
 Check(!ReferenceEquals(provider.GetRequiredService<ISessionManager>(), otherClient.GetRequiredService<ISessionManager>()), "Sesiones aisladas por cliente.");
 var restoredServices = new ServiceCollection();
@@ -130,27 +144,34 @@ restoredServices.AddHttpClient("ComunioAuth").ConfigurePrimaryHttpMessageHandler
 restoredServices.AddHttpClient("Comunio").ConfigurePrimaryHttpMessageHandler(() => restoredApi);
 using var restoredClient = restoredServices.BuildServiceProvider();
 restoredApi.ExpireNextToken = true;
-await restoredClient.GetRequiredService<AuthService>().LoginAsync("user", "password").WaitAsync(TimeSpan.FromSeconds(10));
+await restoredClient.GetRequiredService<AuthService>().Login("user", "password").WaitAsync(TimeSpan.FromSeconds(10));
+
 Check(restoredApi.TokenRequests == 1 && restoredApi.ProfileRequests == 1,
     "El perfil inicial usa el token explicito sin pasar por el handler ni renovar.");
+
 using var restoredHttp = restoredClient.GetRequiredService<IHttpClientFactory>().CreateClient("Comunio");
 var responses = await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => restoredHttp.GetAsync("")));
+
 Check(responses.All(x => x.IsSuccessStatusCode) && restoredApi.TokenRequests == 2,
     "El pipeline renueva una sola vez antes de enviar las peticiones concurrentes.");
+
 foreach (var response in responses) response.Dispose();
 var restoredSession = restoredClient.GetRequiredService<ISessionManager>();
-Check(await restoredSession.GetValidAccessTokenAsync() == "test", "El handler dispone del token renovado.");
+Check(await restoredSession.GetValidAccessToken() == "test", "El handler dispone del token renovado.");
 restoredApi.TokenLifetimeSeconds = 30;
-await restoredClient.GetRequiredService<AuthService>().LoginAsync("user", "password");
+await restoredClient.GetRequiredService<AuthService>().Login("user", "password");
 var cachedProfile = restoredSession.Session;
 var profileRequests = restoredApi.ProfileRequests;
-await restoredSession.GetValidAccessTokenAsync();
+await restoredSession.GetValidAccessToken();
+
 Check(ReferenceEquals(cachedProfile, restoredSession.Session) && restoredApi.ProfileRequests == profileRequests,
     "Renovar conserva el perfil sin volver a cargarlo.");
+
 restoredApi.FailTokenTransport = true;
+
 try
 {
-    await restoredSession.GetValidAccessTokenAsync();
+    await restoredSession.GetValidAccessToken();
     throw new Exception("Se esperaba un error de transporte al renovar.");
 }
 catch (HttpRequestException)
@@ -158,50 +179,64 @@ catch (HttpRequestException)
     Check(ReferenceEquals(cachedProfile, restoredSession.Session),
         "Un fallo de transporte al renovar conserva el perfil.");
 }
+
 restoredApi.FailTokenTransport = false;
-Check(await restoredSession.GetValidAccessTokenAsync() == "test",
+
+Check(await restoredSession.GetValidAccessToken() == "test",
     "Tras recuperarse la conexion se puede renovar sin iniciar sesion otra vez.");
+
 restoredApi.RejectTokens = true;
+
 try
 {
-    await restoredSession.GetValidAccessTokenAsync();
+    await restoredSession.GetValidAccessToken();
     throw new Exception("Se esperaba el rechazo de la renovacion.");
 }
 catch (AuthenticationRequiredException)
 {
-    await CheckSessionClearedAsync(restoredSession,
+    await CheckSessionCleared(restoredSession,
         "Una renovacion rechazada elimina tokens y perfil juntos.");
 }
-await restoredClient.GetRequiredService<AuthService>().LogoutAsync();
-await CheckSessionClearedAsync(restoredSession,
+
+await restoredClient.GetRequiredService<AuthService>().Logout();
+
+await CheckSessionCleared(restoredSession,
     "Logout elimina el token del handler.");
+
 try
 {
-    await restoredSession.LoadAsync(new("test", null, DateTimeOffset.UtcNow.AddMinutes(-1)));
-    await restoredSession.GetValidAccessTokenAsync();
+    await restoredSession.Load(new("test", null, DateTimeOffset.UtcNow.AddMinutes(-1)));
+    await restoredSession.GetValidAccessToken();
     throw new Exception("Se esperaba el rechazo de un token caducado sin refresh token.");
 }
 catch (AuthenticationRequiredException ex)
 {
     Check(ex.ResourceKey == TextKey.SessionExpired,
         "La caducidad sin refresh token devuelve el error de sesion expirada.");
-    await CheckSessionClearedAsync(restoredSession,
+
+    await CheckSessionCleared(restoredSession,
         "La caducidad sin refresh token elimina la sesion.");
 }
+
 restoredApi.RejectTokens = false;
 restoredApi.OmitRefreshToken = true;
 restoredApi.TokenLifetimeSeconds = 1800;
-var renewedToken = await restoredClient.GetRequiredService<IComunioTokenClient>().RefreshAsync("previous-refresh");
+var renewedToken = await restoredClient.GetRequiredService<IComunioTokenClient>().Refresh("previous-refresh");
+
 Check(renewedToken.RefreshToken == "previous-refresh"
     && renewedToken.ExpiresAtUtc > DateTimeOffset.UtcNow.AddMinutes(29),
     "El cliente calcula la caducidad y conserva el refresh token si la API no lo devuelve.");
-await CheckSessionClearedAsync(restoredSession,
+
+await CheckSessionCleared(restoredSession,
     "Solicitar tokens no modifica ni almacena la sesion.");
+
 var restartedServices = new ServiceCollection();
 restartedServices.AddComunioCore();
 using var restartedClient = restartedServices.BuildServiceProvider();
-await CheckSessionClearedAsync(restartedClient.GetRequiredService<ISessionManager>(),
+
+await CheckSessionCleared(restartedClient.GetRequiredService<ISessionManager>(),
     "Un proceso nuevo exige login y no dispone de los tokens de otra instancia.");
+
 var notificationApi = new FakeApi();
 var telegramApi = new FakeTelegramApi();
 var notificationServices = new ServiceCollection();
@@ -215,33 +250,39 @@ var notificationAuth = notificationClient.GetRequiredService<AuthService>();
 var notificationSession = notificationClient.GetRequiredService<ISessionManager>();
 telegramApi.ProfileIsLoaded = () => notificationSession.Session is not null;
 
-await notificationAuth.LoginAsync("another-user", "not-a-real-password");
+await notificationAuth.Login("another-user", "not-a-real-password");
 Check(telegramApi.Messages.Count == 0, "No se notifican otros usuarios.");
 notificationApi.FailProfile = true;
+
 try
 {
-    await notificationAuth.LoginAsync("ElGatFumat", "not-a-real-password");
+    await notificationAuth.Login("ElGatFumat", "not-a-real-password");
     throw new Exception("Se esperaba un fallo de carga del perfil.");
 }
 catch (AuthenticationRequiredException)
 {
     Check(telegramApi.Messages.Count == 0, "No se notifica un login con perfil fallido.");
 }
+
 notificationApi.FailProfile = false;
-await notificationAuth.LoginAsync("ElGatFumat", "not-a-real-password");
+await notificationAuth.Login("ElGatFumat", "not-a-real-password");
 var sent = telegramApi.Messages.Single();
 var sentText = sent.Value<string>("text")!;
+
 Check(sent.Value<long>("chat_id") == 12345 && sentText.StartsWith("Chinchilla\n")
     && sentText.Contains("ElGatFumat") && sentText.Contains("Fecha (UTC):")
     && !sentText.Contains("not-a-real-password") && !sentText.Contains("refresh")
     && !sentText.Contains("access_token"), "El aviso solo contiene usuario y fecha, sin credenciales ni tokens.");
+
 Check(telegramApi.AllProfilesLoaded, "El aviso se envia despues de cargar el perfil.");
-await notificationAuth.LogoutAsync();
+await notificationAuth.Logout();
 Check(telegramApi.Messages.Count == 1, "Logout no genera otro aviso.");
 telegramApi.Fail = true;
-await notificationAuth.LoginAsync("ElGatFumat", "not-a-real-password");
-Check(notificationSession.Session is not null && await notificationSession.GetValidAccessTokenAsync() == "test"
+await notificationAuth.Login("ElGatFumat", "not-a-real-password");
+
+Check(notificationSession.Session is not null && await notificationSession.GetValidAccessToken() == "test"
     && telegramApi.Messages.Count == 2, "Un fallo de Telegram conserva la sesion y no se reintenta.");
+
 Console.WriteLine("Comprobaciones de migracion correctas; sin peticiones reales a Comunio ni Telegram.");
 
 sealed class FakeTelegramApi : HttpMessageHandler
@@ -254,12 +295,17 @@ sealed class FakeTelegramApi : HttpMessageHandler
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         if (!request.RequestUri!.AbsolutePath.EndsWith("/sendMessage"))
+        {
             throw new Exception("Operacion Telegram inesperada.");
+        }
+
         Messages.Add(JObject.Parse(await request.Content!.ReadAsStringAsync(cancellationToken)));
         AllProfilesLoaded &= ProfileIsLoaded();
+
         var body = Fail
             ? "{\"ok\":false,\"error_code\":503,\"description\":\"Simulated Telegram error\"}"
             : "{\"ok\":true,\"result\":{\"message_id\":1,\"date\":1792323058,\"chat\":{\"id\":12345,\"type\":\"private\"},\"text\":\"Sent\"}}";
+
         return new(Fail ? HttpStatusCode.ServiceUnavailable : HttpStatusCode.OK)
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json")
@@ -285,23 +331,43 @@ sealed class FakeApi : HttpMessageHandler
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var path = request.RequestUri!.AbsolutePath;
+
         if (path != "/login")
             CheckBearer(request);
+
         object response;
+
         if (path == "/login")
         {
             if (request.Headers.Authorization is not null)
+            {
                 throw new Exception("Las peticiones de tokens no deben incluir Bearer.");
+            }
+
             TokenRequests++;
-            if (FailTokenTransport) throw new HttpRequestException("Simulated transport failure.");
-            if (RejectTokens) return new(HttpStatusCode.Unauthorized);
+
+            if (FailTokenTransport)
+            {
+                throw new HttpRequestException("Simulated transport failure.");
+            }
+
+            if (RejectTokens)
+            {
+                return new(HttpStatusCode.Unauthorized);
+            }
+
             response = new { access_token = "test", refresh_token = OmitRefreshToken ? null : "refresh", expires_in = ExpireNextToken ? -60 : TokenLifetimeSeconds };
             ExpireNextToken = false;
         }
         else if (path == "/")
         {
             ProfileRequests++;
-            if (FailProfile) return new(HttpStatusCode.ServiceUnavailable);
+
+            if (FailProfile)
+            {
+                return new(HttpStatusCode.ServiceUnavailable);
+            }
+
             response = new { user = new { id = "admin", name = "Admin", isAdmin = true }, community = new { id = "community" } };
         }
         else if (path == "/matchdays")
@@ -317,18 +383,26 @@ sealed class FakeApi : HttpMessageHandler
         else if (path.EndsWith("/penalties"))
         {
             PaymentAttempts = FailAtPayment.HasValue ? PaymentAttempts + 1 : 0;
-            if (PaymentAttempts == FailAtPayment) return new(HttpStatusCode.InternalServerError);
+
+            if (PaymentAttempts == FailAtPayment)
+            {
+                return new(HttpStatusCode.InternalServerError);
+            }
+
             Payments.Add(JsonConvert.DeserializeObject<PostCashRequestModel>(await request.Content!.ReadAsStringAsync(cancellationToken))!);
             response = new { };
         }
         else throw new Exception($"Peticion inesperada: {request.RequestUri}");
+
         return new(HttpStatusCode.OK) { Content = new StringContent(JsonConvert.SerializeObject(response), Encoding.UTF8, "application/json") };
     }
 
     private static void CheckBearer(HttpRequestMessage request)
     {
         if (request.Headers.Authorization is not { Scheme: "Bearer", Parameter: "test" })
+        {
             throw new Exception("La petición debe llevar el token vigente.");
+        }
     }
 }
 

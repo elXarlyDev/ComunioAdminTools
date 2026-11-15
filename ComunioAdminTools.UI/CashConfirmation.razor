@@ -1,0 +1,68 @@
+@using Microsoft.JSInterop
+@using ComunioAdminTools.Core.Models
+@inherits LocalizedComponentBase
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<dialog class="cash-confirmation" @ref="dialog" aria-labelledby="cash-confirmation-title" aria-describedby="cash-confirmation-message" @onclose="Cancelled">
+    <h2 id="cash-confirmation-title">@Text[Title]</h2>
+    <p id="cash-confirmation-message">@Text[Plan.Operation == CashOperation.Correction && Plan.Payments.Count == 0 ? TextKey.NoCorrectionsNeeded : TextKey.CashConfirmationMessage]</p>
+    @if (Plan.Payments.Count > 0)
+    {
+        <ActionResults Rows="Rows" ValueHeading="@Text[TextKey.Amount]" />
+    }
+    <div class="confirmation-actions">
+        <button type="button" class="accept" disabled="@(Plan.Payments.Count == 0)" @onclick="Accepted">@Text[TextKey.Accept]</button>
+        <button type="button" class="cancel" autofocus @onclick="Cancelled">@Text[TextKey.Cancel]</button>
+    </div>
+</dialog>
+
+@code {
+    private ElementReference dialog;
+    private IJSObjectReference? module;
+    private bool disposed;
+
+    [Parameter, EditorRequired] public CashPlan Plan { get; set; } = default!;
+    [Parameter] public EventCallback Accepted { get; set; }
+    [Parameter] public EventCallback Cancelled { get; set; }
+
+    private TextKey Title => Plan.Operation switch
+    {
+        CashOperation.RoundPoints => TextKey.PayPoints,
+        CashOperation.RevertRoundPoints => TextKey.RevertPoints,
+        CashOperation.Correction => TextKey.Correction,
+        _ => TextKey.PayBreak
+    };
+
+    private IReadOnlyList<(string Name, string Value)> Rows => Plan.Payments.OrderByDescending(payment => payment.Amount)
+        .Select(payment => (payment.UserName, payment.Amount.ToString("C0", Text.Culture))).ToArray();
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+
+        if (module is not null)
+        {
+            try { await module.DisposeAsync(); }
+            catch (JSDisconnectedException) { }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/ComunioAdminTools.UI/lineupHelp.js");
+
+        if (disposed)
+        {
+            await module.DisposeAsync();
+            return;
+        }
+
+        await module.InvokeVoidAsync("open", dialog);
+    }
+}

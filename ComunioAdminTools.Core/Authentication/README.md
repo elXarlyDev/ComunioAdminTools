@@ -8,8 +8,8 @@ deben recibir `IHttpClientFactory` y usar `CreateClient("Comunio")`, o heredar d
 `new HttpClient()` no reciben autenticación. La carga inicial del perfil utiliza
 `ComunioAuth`, sin handler, y establece Bearer explícitamente con el token recibido.
 
-`AuthService.LoginAsync(usuario, contraseña)` guarda los tokens y su caducidad;
-`LogoutAsync()` elimina los tokens y el perfil en memoria. El handler obtiene el token vigente por petición.
+`AuthService.Login(usuario, contraseña)` guarda los tokens y su caducidad;
+`Logout()` elimina los tokens y el perfil en memoria. El handler obtiene el token vigente por petición.
 Los servicios usan rutas relativas sobre `https://api.comunio.es/` y no reintentan
 operaciones automáticamente. El handler no valida el destino de las peticiones.
 
@@ -53,21 +53,21 @@ Las consultas de sesión no hacen HTTP. Tras logout, permanece vacío hasta el s
 
 ## Responsabilidades de autenticación
 
-AuthService solicita los tokens mediante IComunioTokenClient.LoginAsync y los
-entrega mediante ISessionManager.LoadAsync. SessionManager utiliza
-IComunioTokenClient.RefreshAsync para renovarlos, sin depender de AuthService.
-ISessionManager expone LoadAsync para cargar tokens y perfil, ClearAsync para
+AuthService solicita los tokens mediante IComunioTokenClient.Login y los
+entrega mediante ISessionManager.Load. SessionManager utiliza
+IComunioTokenClient.Refresh para renovarlos, sin depender de AuthService.
+ISessionManager expone Load para cargar tokens y perfil, Clear para
 eliminarlos, el perfil, los cambios de sesión y el acceso
 al token vigente. Todos sus consumidores comparten la misma instancia por cliente.
 SessionManager es el único propietario del estado de sesión. Su SessionState agrupa
 TokenSession y SessionDataModel; la propiedad Session expone únicamente el perfil.
 Session es null hasta completar el inicio y vuelve a null al eliminar la sesión.
-No hay consultas asíncronas ni carga pública del perfil: se carga durante LoadAsync.
+No hay consultas asíncronas ni carga pública del perfil: se carga durante Load.
 Un fallo de inicio elimina todo el estado y el access token almacenado.
 La renovación sustituye los tokens conservando el perfil; logout y una renovación
 rechazada eliminan ambos. Solo AuthService puede iniciar y cerrar la sesión; su semáforo coordina ambas operaciones.
 SessionManager tiene un único semáforo para cambios de estado y renovación.
-LoadAsync mantiene ese bloqueo durante toda la carga, incluida la petición del
+Load mantiene ese bloqueo durante toda la carga, incluida la petición del
 perfil con token explícito. Esa petición no pasa por ComunioAuthHandler y no
 vuelve a adquirir el semáforo. Si falla, se limpia el estado dentro del mismo bloqueo;
 las notificaciones se emiten después de liberarlo.
@@ -75,7 +75,7 @@ El access token, refresh token, caducidad y perfil solo se conservan en memoria.
 Tras cerrarse el proceso es obligatorio iniciar sesión de nuevo.
 
 ComunioAuthHandler obtiene el token vigente mediante
-ISessionManager.GetValidAccessTokenAsync antes de establecer Bearer en cada
+ISessionManager.GetValidAccessToken antes de establecer Bearer en cada
 petición autenticada. SessionManager comprueba la caducidad y renueva cuando
 corresponde. El handler usa directamente el token devuelto por el gestor.
 No se reenvían peticiones automáticamente.

@@ -1,0 +1,6 @@
+.lineup-save-confirmation { box-sizing: border-box; width: min(360px, calc(100vw - 40px)); padding: 24px; border: 0; border-radius: 12px; background: white; color: #26332b; font-family: "Open Sans", Arial, sans-serif; }
+.lineup-save-confirmation::backdrop { background: rgb(0 0 0 / 50%); }
+.lineup-save-confirmation p { margin: 0 0 24px; font-size: 18px; font-weight: 700; text-align: center; }
+.lineup-save-confirmation form { display: flex; justify-content: center; }
+.lineup-save-confirmation button { min-width: 80px; min-height: 44px; padding: 8px 20px; border: 0; border-radius: 8px; background: #0b4d2c; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+.lineup-save-confirmation button:focus-visible { outline: 2px solid #0b4d2c; outline-offset: 3px; }

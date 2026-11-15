@@ -1,5 +1,9 @@
 # ComunioAdminTools
 
+Las prácticas compartidas de desarrollo se mantienen en [AGENTS.md](AGENTS.md),
+la gobernanza para todo el repositorio. Consulta ese archivo antes de realizar
+cambios y registra allí las nuevas convenciones acordadas.
+
 La solución contiene cuatro proyectos activos:
 
 - `ComunioAdminTools.Core`: modelos, autenticación, sesión y servicios de Comunio.
@@ -100,6 +104,28 @@ el icono o nombre anterior, elimínalo y vuelve a añadirlo tras el despliegue.
 Referencias: [workflows oficiales de Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
 y [despliegue de Blazor WebAssembly](https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-10.0).
 
+## Iconos de Font Awesome
+
+UI incluye Font Awesome Free 7.3.1 en `wwwroot/lib/fontawesome`, con su licencia.
+Web y Mobile cargan los mismos estilos y fuentes locales, sin depender de un CDN.
+Se incluyen los estilos gratuitos Solid, Regular y Brands. En cualquier componente
+Razor de UI puedes utilizar las clases directamente:
+
+```razor
+<button type="button">
+    <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+    Guardar
+</button>
+<i class="fa-regular fa-circle-check" aria-hidden="true"></i>
+<i class="fa-brands fa-github" aria-hidden="true"></i>
+```
+
+Los iconos decorativos llevan `aria-hidden="true"`. Si un botón solo contiene
+un icono, añade un `aria-label` traducido que describa su acción.
+Para actualizar la biblioteca, sustituye `css/all.min.css`, las fuentes de
+`webfonts` y `LICENSE.txt` por los de la misma versión del
+[paquete oficial](https://github.com/FortAwesome/Font-Awesome/releases/tag/7.3.1).
+
 ## Idiomas
 
 La interfaz incluye un selector de español y valenciano. Los textos de Web,
@@ -118,14 +144,93 @@ entre Web y Mobile y el idioma elegido se conserva al cambiar de pantalla.
 MainPage incluye la pestaña de dinero únicamente si el usuario de la sesión es
 administrador o líder (`IsAdmin` o `IsLeader`). Las consultas están disponibles
 para todos los usuarios con sesión.
-Los resultados y errores de Dinero se muestran dentro de su pestaña. Los botones
-Abonar jornada y Abonar parón comparten una fila; Revertir abono aparece debajo
+Los resultados y errores de Abonos se muestran dentro de su pestaña. Los botones
+Jornada (icono de euro), Parón (planeta Tierra) y Corrección (euro, naranja claro)
+comparten una fila; Revertir
+(icono de euro) aparece debajo
 del resultado de una jornada abonada correctamente con importes positivos, y
 desaparece al revertir o ejecutar otro abono. Los fallos parciales muestran los
 importes confirmados, sin ofrecer una reversión completa de la jornada.
-Consultas usa los botones Últimos puntos y Exceso plantilla, en una fila compacta.
+Jornada, Parón, Corrección y Revertir calculan primero los importes por
+usuario y los muestran en un modal de confirmación. Revertir muestra importes
+negativos. Aceptar, en verde, ejecuta exactamente ese cálculo sin consultar de
+nuevo los puntos; Cancelar, en gris, cierra el modal sin realizar movimientos y
+mantiene los resultados anteriores. Al aceptar, los resultados vuelven a mostrarse
+dentro de Abonos. Cada cálculo solo puede ejecutarse una vez y se descarta si
+cambia la sesión. Los resultados de abonos utilizan `CashResultModel`.
+Corrección localiza la noticia `SYSTEM_ADMINISTRATION` / `POINTS_CALCULATION`
+de la última jornada finalizada. Consulta noticias en páginas de veinte, con
+`start=0,20,40...` y `limit=20`, y suma todos los `TRANSACTION_BONUS` desde la
+fecha de esa noticia, incluida, hasta el inicio de la jornada siguiente, excluido.
+No distingue razones de abono. Extrae el destinatario anterior a la referencia al
+administrador, sin contar el nombre de este entre paréntesis. La diferencia es
+el importe por puntos positivos de la jornada menos lo ya abonado: se muestra
+positiva para abonar y negativa para retirar, sin incluir usuarios sin diferencias.
+Si falta una fecha necesaria, la noticia de cálculo o un abono no puede asociarse
+de forma inequívoca, no se prepara una corrección. Si todo coincide, se informa
+en el modal sin permitir movimientos innecesarios.
+Los textos «Pena disciplinaria… han sido restados…» se contabilizan como cargos
+negativos, incluidos los que muestran el símbolo €, para calcular el saldo neto
+ya aplicado y evitar repetir una corrección anterior.
+Cada página de noticias tiene un límite de espera de 30 segundos que incluye
+la descarga del cuerpo. Si no termina, se cancela la espera y se muestra un error.
+En depuración, las trazas `Comunio GET` distinguen envío, cabeceras, lectura del
+cuerpo y procesamiento del JSON, sin registrar tokens ni contenido de las noticias.
+Puntos usa los botones Últimos puntos y Clasificaciones, en una fila compacta.
 Sus resultados, estados vacíos y errores aparecen en la misma pestaña, con Ocultar
 alineado a la derecha. Cada pestaña conserva sus resultados de forma independiente.
+La pestaña Plantilla está disponible para todos los usuarios con sesión y contiene
+Exceso plantilla y Alineación. Cada botón sustituye los resultados o errores del
+otro; nunca se muestran ambas vistas a la vez. Exceso plantilla conserva su consulta,
+la jornada, el resaltado por número de jugadores y Ocultar dentro de esta pestaña.
+Alineación es un botón verde Comunio y sin icono. Consulta la plantilla
+del usuario con sesión y obtiene el detalle de cada jugador para mostrar su
+nombre, club, posición (`type`), estado (`status`) e información (`statusInfo`) en
+tarjetas como las del historial de fichajes, sin columnas. Las posiciones se
+deserializan al enumerado `PlayerPosition` y se muestran en blanco: PT sobre ocre,
+DF sobre verde, MC sobre azul y DL sobre rojo. Los estados usan el enumerado
+`PlayerStatus`: ACTIVE se muestra como un check verde; INJURED como una cruz
+sanitaria roja; REHABILITATION con la misma cruz naranja clara; WEAKENED con una
+interrogación naranja clara; los BANNED y SUSPENDED con una tarjeta roja; AWAY y
+GAME_BREAK con una persona saliendo. Los demás conservan su texto y los iconos
+incluyen una etiqueta accesible con el estado de la API.
+Titulares aparece a la izquierda con once huecos fijos,
+ordenados por la propiedad numérica `position` de mayor a menor, consultados en
+`communities/{comunidad}/users/{usuario}/lineup`. Sus estados proceden de esa
+respuesta. El desplegable Formación permite 4-4-2, 3-4-3, 3-5-2, 4-3-3 y 4-5-1,
+seleccionando inicialmente `tactic`. El hueco 11 es siempre para portero; los
+siguientes corresponden a defensas, medios y delanteros según la formación.
+Solo se permiten movimientos e intercambios si cada jugador encaja en su destino.
+Al cambiar de formación se vacían los huecos que contienen un jugador incompatible,
+que vuelve a suplentes; se mantienen los demás jugadores en sus huecos.
+Los huecos vacíos muestran un «+» y un fondo tenue del color de su posición,
+con el nombre de la posición en su etiqueta accesible y al pasar el cursor.
+Junto al título Alineación, un icono azul de información sin fondo abre un modal
+con la explicación de cómo formar la alineación y la leyenda de estados.
+Se cierra con Cerrar o Escape y devuelve el foco al botón de información.
+Suplentes aparece a la derecha y excluye por identificador a los
+titulares; se ordena por posición (PT, DF, MC, DL) y después por nombre
+alfabético, con los jugadores sin posición al final. Arrastrar un suplente a un
+hueco lo añade a titulares; soltarlo sobre un titular los intercambia. Arrastrar
+un titular al fondo del listado de suplentes lo quita; sobre un suplente los
+intercambia. También se pueden intercambiar dos huecos de titulares. En pantallas
+táctiles se arrastra después de mantener pulsado; con teclado se selecciona y
+se confirma el destino con Intro o espacio, y Escape cancela. Las ediciones son locales
+hasta pulsar Guardar al pie de la alineación, junto al icono de guardar. Envía un PUT
+a la misma URL de la alineación con `userId`, `tactic`, `lineup`, `substitutes`
+y `type: "default"`. Las cuatro posiciones de `substitutes` (`striker`, `midfielder`,
+`defender` y `keeper`) se envían como cadenas vacías. Las claves de `lineup` van
+de 1 a 11, contienen los ids como cadenas y
+usan una cadena vacía para cada hueco libre. A continuación hace GET de la misma
+URL y muestra la alineación devuelta por el servidor. Tras completar ambos pasos
+abre un modal con «Alineación guardada» y un botón OK para cerrarlo.
+Si falla el PUT, conserva la selección local y no recarga. Si falla solo el GET,
+indica que el envío se completó pero la recarga falló, sin confirmar el guardado.
+Guardar se bloquea durante la petición y no se reintenta automáticamente.
+Los cambios sin guardar se descartan al consultar de nuevo u ocultar el resultado.
+Con once titulares se permiten intercambios, conservando los once huecos.
+`statusInfo` solo se muestra si no está vacío y el jugador
+no está `ACTIVE`. Sus resultados y errores se pueden ocultar con Ocultar.
 El botón Clasificaciones permite consultar Mes, Primera mitad, Segunda mitad o
 Temporada (`period=total`). Solo Mes muestra el selector de meses.
 Al abrirlo se consulta el mes actual; al cambiar el periodo o mes se actualizan
@@ -182,7 +287,15 @@ dotnet build ComunioAdminTools.Mobile/ComunioAdminTools.Mobile.csproj -f net10.0
 dotnet run --project Tests/MigrationChecks/MigrationChecks.csproj
 dotnet run --project Tests/LocalizationChecks/LocalizationChecks.csproj
 dotnet run --project Tests/SquadChecks/SquadChecks.csproj
+dotnet run --project Tests/CashChecks/CashChecks.csproj
 dotnet run --project Tests/MarketChecks/MarketChecks.csproj
+```
+
+Para comprobar los gestos de la alineación con Edge instalado, sin cuentas ni
+conexiones a Comunio:
+
+```powershell
+.\Tests\LineupDragChecks\BrowserChecks.ps1
 ```
 
 Las comprobaciones de migración usan una API simulada. Cubren las cinco operaciones,

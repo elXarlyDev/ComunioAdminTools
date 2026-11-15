@@ -8,14 +8,14 @@ public interface ILocalizedError
     object?[] Arguments { get; }
 }
 
-public sealed class LocalizedInvalidOperationException(AppLocalization text, TextKey key, Exception? inner = null)
-    : InvalidOperationException(text[key], inner), ILocalizedError
+public sealed class LocalizedInvalidOperationException(AppLocalization text, TextKey key, Exception? inner = null, params object?[] arguments)
+    : InvalidOperationException(text.Format(key, arguments), inner), ILocalizedError
 {
     public TextKey ResourceKey => key;
 
-    public object?[] Arguments => [];
+    public object?[] Arguments => arguments;
 
-    public override string Message => text[key];
+    public override string Message => text.Format(key, arguments);
 }
 
 public sealed class LocalizedHttpRequestException(
