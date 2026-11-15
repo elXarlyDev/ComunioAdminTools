@@ -17,21 +17,26 @@ public sealed class MarketService(IHttpClientFactory factory, ISessionManager se
 {
     public async Task<IReadOnlyList<TransferModel>> GetTransferHistory()
     {
-        var session = Session;
-
         var history = await Get<HistoryResponse>(
-            $"communities/{Uri.EscapeDataString(session.Community.Id)}/users/{Uri.EscapeDataString(session.User.Id)}/offers/history?limit=999999");
+            $"{GetCommunityUriPart()}/users/{Uri.EscapeDataString(Session.User.Id)}/offers/history?limit=999999");
 
-        // History uses tradingPartner as seller and user as buyer for both SALE and PURCHASE.
-        return history.Items.Select(offer => new TransferModel(offer.Tradable.Name, offer.Tradable.Club.Name,
-            offer.TradingPartner.Name.Trim(), offer.User.Name.Trim(), offer.Price,
-            offer.Tradable.QuotedPrice, offer.DateChanged)).ToArray();
+        return [.. history.Items.Select(offer => 
+            new TransferModel(
+                PlayerName: offer.Tradable.Name, 
+                ClubName: offer.Tradable.Club.Name,
+                SellerName: offer.TradingPartner.Name.Trim(), 
+                BuyerName: offer.User.Name.Trim(), 
+                Price: offer.Price,
+                QuotedPrice: offer.Tradable.QuotedPrice, 
+                DateChanged: offer.DateChanged
+            )     
+        )];
     }
 
     public async Task<IReadOnlyList<string>> GetCommunityUserNames()
     {
         var standings = await GetStandings();
-        return standings.Teams.Select(team => team.TeamInfo.User.Name.Trim()).ToArray();
+        return [.. standings.Teams.Select(team => team.TeamInfo.User.Name.Trim())];
     }
 
     private sealed class HistoryResponse

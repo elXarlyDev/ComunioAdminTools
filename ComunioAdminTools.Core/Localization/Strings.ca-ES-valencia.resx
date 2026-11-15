@@ -21,6 +21,29 @@
   <data name="Sections" xml:space="preserve"><value>Seccions</value></data>
   <data name="Money" xml:space="preserve"><value>Diners</value></data>
   <data name="Queries" xml:space="preserve"><value>Consultes</value></data>
+  <data name="Squad" xml:space="preserve"><value>Plantilla</value></data>
+  <data name="SquadStatus" xml:space="preserve"><value>Alineació</value></data>
+  <data name="Starters" xml:space="preserve"><value>Titulars</value></data>
+  <data name="Formation" xml:space="preserve"><value>Formació</value></data>
+  <data name="Goalkeeper" xml:space="preserve"><value>Porter</value></data>
+  <data name="Defender" xml:space="preserve"><value>Defensa</value></data>
+  <data name="Midfielder" xml:space="preserve"><value>Migcampista</value></data>
+  <data name="Striker" xml:space="preserve"><value>Davanter</value></data>
+  <data name="Substitutes" xml:space="preserve"><value>Suplents</value></data>
+  <data name="EmptyLineupSlot" xml:space="preserve"><value>Buit {0}</value></data>
+  <data name="LineupDragInstructions" xml:space="preserve"><value>Arrossega els jugadors entre Titulars i Suplents per a formar la teua alineació. A continuació s'expliquen els diferents estats dels jugadors:</value></data>
+  <data name="LineupHelp" xml:space="preserve"><value>Informació de l'alineació</value></data>
+  <data name="Save" xml:space="preserve"><value>Guardar</value></data>
+  <data name="Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="LineupSaved" xml:space="preserve"><value>Alineació guardada</value></data>
+  <data name="LineupReloadFailed" xml:space="preserve"><value>L'alineació s'ha enviat, però no s'ha pogut recarregar. Torna a consultar Alineació per a comprovar-la.</value></data>
+  <data name="InvalidLineup" xml:space="preserve"><value>Revisa la formació i els jugadors de l'alineació: no pot haver-hi jugadors repetits ni posicions incompatibles.</value></data>
+  <data name="StatusActive" xml:space="preserve"><value>Actiu</value></data>
+  <data name="StatusInjured" xml:space="preserve"><value>Lesionat</value></data>
+  <data name="StatusRehabilitation" xml:space="preserve"><value>En rehabilitació</value></data>
+  <data name="StatusWeakened" xml:space="preserve"><value>Tocat, dubte per a esta jornada</value></data>
+  <data name="StatusBanned" xml:space="preserve"><value>Sancionat</value></data>
+  <data name="StatusAway" xml:space="preserve"><value>Fora o en pausa de competició</value></data>
   <data name="Market" xml:space="preserve"><value>Mercat</value></data>
   <data name="AllUsers" xml:space="preserve"><value>Tots</value></data>
   <data name="Filters" xml:space="preserve"><value>Filtres</value></data>
@@ -52,6 +75,7 @@
   <data name="LastRoundPoints" xml:space="preserve"><value>Punts de l’última jornada</value></data>
   <data name="Points" xml:space="preserve"><value>Punts</value></data>
   <data name="SquadExcess" xml:space="preserve"><value>Excés de plantilla</value></data>
+  <data name="SquadExcessNote" xml:space="preserve"><value>NOTA: El càlcul pot ser inexacte si es consulta fora de jornada. S'ha de consultar durant el transcurs de la jornada per a un resultat totalment fiable</value></data>
   <data name="Players" xml:space="preserve"><value>Jugadors</value></data>
   <data name="Amount" xml:space="preserve"><value>Import</value></data>
   <data name="IncompleteOperation" xml:space="preserve"><value>Operació incompleta</value></data>

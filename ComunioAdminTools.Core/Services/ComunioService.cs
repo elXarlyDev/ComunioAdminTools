@@ -1,7 +1,8 @@
-using ComunioAdminTools.Core.Authentication;
-using Newtonsoft.Json;
-using ComunioAdminTools.Core.Localization;
 using System.Text;
+
+using Newtonsoft.Json;
+
+using ComunioAdminTools.Core.Localization;
 
 namespace ComunioAdminTools.Core.Services
 {
@@ -39,13 +40,19 @@ namespace ComunioAdminTools.Core.Services
             return ComunioHttp.Deserialize<TResponse>(await httpResponse.Content.ReadAsStringAsync(), text);
         }
 
-        public async Task PostWithoutResponse<T>(string uri, T body)
+        public Task PostWithoutResponse<T>(string uri, T body) where T : class
+            => SendWithoutResponse(HttpMethod.Post, uri, body);
+
+        public Task PutWithoutResponse<T>(string uri, T body) where T : class
+            => SendWithoutResponse(HttpMethod.Put, uri, body);
+
+        private async Task SendWithoutResponse<T>(HttpMethod method, string uri, T body)
             where T : class
         {
             var json = JsonConvert.SerializeObject(body);
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = content };
+            using var request = new HttpRequestMessage(method, uri) { Content = content };
             using var httpResponse = await ComunioHttp.Send(httpClient, request, text);
             ComunioHttp.EnsureSuccess(httpResponse, text);
         }

@@ -1,0 +1,34 @@
+@using ComunioAdminTools.Core.Models
+
+@if (Icon is { } icon)
+{
+    <i class="fa-solid @icon.Name @icon.CssClass" role="img" aria-label="@Label" title="@Label"></i>
+}
+else
+{
+    <span>(@Label)</span>
+}
+
+@code {
+    [Parameter] public PlayerStatus? Status { get; set; }
+
+    private string Label => Status switch
+    {
+        PlayerStatus.GameBreak => "GAME_BREAK",
+        PlayerStatus.RedBanned => "RED_BANNED",
+        PlayerStatus.YellowBanned => "YELLOW_BANNED",
+        PlayerStatus.YellowRedBanned => "YELLOW_RED_BANNED",
+        _ => Status?.ToString().ToUpperInvariant() ?? "—"
+    };
+
+    private (string Name, string CssClass)? Icon => Status switch
+    {
+        PlayerStatus.Active => ("fa-check", "status-active"),
+        PlayerStatus.Injured => ("fa-kit-medical", "status-injured"),
+        PlayerStatus.Rehabilitation => ("fa-kit-medical", "status-caution"),
+        PlayerStatus.RedBanned or PlayerStatus.YellowBanned or PlayerStatus.YellowRedBanned or PlayerStatus.Suspended => ("fa-square", "status-banned"),
+        PlayerStatus.Weakened => ("fa-question", "status-caution"),
+        PlayerStatus.GameBreak or PlayerStatus.Away => ("fa-person-walking-arrow-right", "status-away"),
+        _ => null
+    };
+}

@@ -1,0 +1,48 @@
+@using Microsoft.JSInterop
+@inherits LocalizedComponentBase
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<dialog class="lineup-save-confirmation" @ref="dialog" aria-labelledby="lineup-saved-message" @onclose="Closed">
+    <p id="lineup-saved-message">@Text[TextKey.LineupSaved]</p>
+    <form method="dialog">
+        <button type="submit" autofocus>@Text[TextKey.Ok]</button>
+    </form>
+</dialog>
+
+@code {
+    private ElementReference dialog;
+    private IJSObjectReference? module;
+    private bool disposed;
+
+    [Parameter] public EventCallback Closed { get; set; }
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+
+        if (module is not null)
+        {
+            try { await module.DisposeAsync(); }
+            catch (JSDisconnectedException) { }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/ComunioAdminTools.UI/lineupHelp.js");
+
+        if (disposed)
+        {
+            await module.DisposeAsync();
+            return;
+        }
+
+        await module.InvokeVoidAsync("open", dialog);
+    }
+}

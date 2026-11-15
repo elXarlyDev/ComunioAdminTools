@@ -1,0 +1,56 @@
+@using Microsoft.JSInterop
+@using ComunioAdminTools.Core.Models
+@inherits LocalizedComponentBase
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<button type="button" class="lineup-info-button" aria-label="@Text[TextKey.LineupHelp]"
+        title="@Text[TextKey.LineupHelp]" @onclick="Open">
+    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+</button>
+
+<dialog class="lineup-help" @ref="dialog" aria-labelledby="lineup-help-title" aria-describedby="lineup-help-description">
+    <h2 id="lineup-help-title">@Text[TextKey.LineupHelp]</h2>
+    <p id="lineup-help-description">@Text[TextKey.LineupDragInstructions]</p>
+    <ul class="status-legend">
+        <li><PlayerStatusIcon Status="PlayerStatus.Active" /><span>@Text[TextKey.StatusActive]</span></li>
+        <li><PlayerStatusIcon Status="PlayerStatus.Injured" /><span>@Text[TextKey.StatusInjured]</span></li>
+        <li><PlayerStatusIcon Status="PlayerStatus.Rehabilitation" /><span>@Text[TextKey.StatusRehabilitation]</span></li>
+        <li><PlayerStatusIcon Status="PlayerStatus.Weakened" /><span>@Text[TextKey.StatusWeakened]</span></li>
+        <li><PlayerStatusIcon Status="PlayerStatus.RedBanned" /><span>@Text[TextKey.StatusBanned]</span></li>
+        <li><PlayerStatusIcon Status="PlayerStatus.Away" /><span>@Text[TextKey.StatusAway]</span></li>
+    </ul>
+    <form method="dialog">
+        <button type="submit" autofocus>@Text[TextKey.Close]</button>
+    </form>
+</dialog>
+
+@code {
+    private ElementReference dialog;
+    private IJSObjectReference? module;
+    private bool disposed;
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+
+        if (module is not null)
+        {
+            try { await module.DisposeAsync(); }
+            catch (JSDisconnectedException) { }
+        }
+    }
+
+    private async Task Open()
+    {
+        module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/ComunioAdminTools.UI/lineupHelp.js");
+
+        if (disposed)
+        {
+            await module.DisposeAsync();
+            return;
+        }
+
+        await module.InvokeVoidAsync("open", dialog);
+    }
+}

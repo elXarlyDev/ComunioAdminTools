@@ -21,6 +21,29 @@
   <data name="Sections" xml:space="preserve"><value>Secciones</value></data>
   <data name="Money" xml:space="preserve"><value>Dinero</value></data>
   <data name="Queries" xml:space="preserve"><value>Consultas</value></data>
+  <data name="Squad" xml:space="preserve"><value>Plantilla</value></data>
+  <data name="SquadStatus" xml:space="preserve"><value>Alineación</value></data>
+  <data name="Starters" xml:space="preserve"><value>Titulares</value></data>
+  <data name="Formation" xml:space="preserve"><value>Formación</value></data>
+  <data name="Goalkeeper" xml:space="preserve"><value>Portero</value></data>
+  <data name="Defender" xml:space="preserve"><value>Defensa</value></data>
+  <data name="Midfielder" xml:space="preserve"><value>Centrocampista</value></data>
+  <data name="Striker" xml:space="preserve"><value>Delantero</value></data>
+  <data name="Substitutes" xml:space="preserve"><value>Suplentes</value></data>
+  <data name="EmptyLineupSlot" xml:space="preserve"><value>Hueco {0}</value></data>
+  <data name="LineupDragInstructions" xml:space="preserve"><value>Arrastra los jugadores entre Titulares y Suplentes para formar tu alineación. A continuación se explican los diferentes estados de los jugadores:</value></data>
+  <data name="LineupHelp" xml:space="preserve"><value>Información de la alineación</value></data>
+  <data name="Save" xml:space="preserve"><value>Guardar</value></data>
+  <data name="Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="LineupSaved" xml:space="preserve"><value>Alineación guardada</value></data>
+  <data name="LineupReloadFailed" xml:space="preserve"><value>La alineación se ha enviado, pero no se ha podido recargar. Vuelve a consultar Alineación para comprobarla.</value></data>
+  <data name="InvalidLineup" xml:space="preserve"><value>Revisa la formación y los jugadores de la alineación: no puede haber jugadores repetidos ni posiciones incompatibles.</value></data>
+  <data name="StatusActive" xml:space="preserve"><value>Activo</value></data>
+  <data name="StatusInjured" xml:space="preserve"><value>Lesionado</value></data>
+  <data name="StatusRehabilitation" xml:space="preserve"><value>En rehabilitación</value></data>
+  <data name="StatusWeakened" xml:space="preserve"><value>Tocado, duda para esta jornada</value></data>
+  <data name="StatusBanned" xml:space="preserve"><value>Sancionado</value></data>
+  <data name="StatusAway" xml:space="preserve"><value>Fuera o en pausa de competición</value></data>
   <data name="Market" xml:space="preserve"><value>Mercado</value></data>
   <data name="AllUsers" xml:space="preserve"><value>Todos</value></data>
   <data name="Filters" xml:space="preserve"><value>Filtros</value></data>
@@ -52,6 +75,7 @@
   <data name="LastRoundPoints" xml:space="preserve"><value>Puntos de la última jornada</value></data>
   <data name="Points" xml:space="preserve"><value>Puntos</value></data>
   <data name="SquadExcess" xml:space="preserve"><value>Exceso de plantilla</value></data>
+  <data name="SquadExcessNote" xml:space="preserve"><value>NOTA: El cálculo puede ser inexacto si se consulta fuera de jornada. Se debe consultar durante el transcurso de la jornada para un resultado totalmente fiable</value></data>
   <data name="Players" xml:space="preserve"><value>Jugadores</value></data>
   <data name="Amount" xml:space="preserve"><value>Importe</value></data>
   <data name="IncompleteOperation" xml:space="preserve"><value>Operación incompleta</value></data>

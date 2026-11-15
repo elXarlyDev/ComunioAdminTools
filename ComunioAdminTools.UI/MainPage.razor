@@ -1,4 +1,5 @@
 @page "/main"
+@using Microsoft.JSInterop
 @using ComunioAdminTools.Core.Authentication
 @using ComunioAdminTools.Core.Models
 @using ComunioAdminTools.Core.Services
@@ -8,9 +9,10 @@
 @inject ISessionManager Session
 @inject CashService Cash
 @inject IPointsService Points
-@inject SquadService Squads
+@inject ISquadService Squads
 @inject IMarketService Market
-@implements IDisposable
+@inject IJSRuntime JS
+@implements IAsyncDisposable
 
 <main class="admin-page" aria-busy="@(busy ? "true" : "false")">
     <header class="session-header" inert="@(busy)">
@@ -41,13 +43,26 @@
 @code {
     private const int TransferPageSize = 10;
 
+    private static readonly LineupFormation[] Formations =
+    [
+        LineupFormation.FourFourTwo, LineupFormation.ThreeFourThree, LineupFormation.ThreeFiveTwo,
+        LineupFormation.FourThreeThree, LineupFormation.FourFiveOne
+    ];
+
     private string sessionUsername = "";
     private bool hasSession;
     private bool busy = true;
     private bool queryResultsVisible;
     private MoneyResult? moneyResult;
     private TextKey titleKey = TextKey.Results;
-    private string? squadMatchdayKey;
+    private SquadExcessResult? squadResult;
+    private Exception? squadError;
+    private IReadOnlyList<PlayerDetailsModel>? squadStatus;
+    private PlayerDetailsModel?[] lineup = new PlayerDetailsModel?[11];
+    private LineupFormation lineupFormation = LineupFormation.FourFourTwo;
+    private Exception? squadStatusError;
+    private TextKey? lineupSaveMessage;
+    private Exception? lineupSaveError;
     private TextKey headingKey = TextKey.Amount;
     private TextKey? messageKey;
     private Exception? error;
@@ -64,14 +79,24 @@
     private IReadOnlyList<string> marketUsers = [];
     private IReadOnlyList<TransferModel> filteredTransfers = [];
     private int transferPage;
+    private ElementReference lineupElement;
+    private ElementReference? boundLineupElement;
+    private IJSObjectReference? lineupModule;
+    private DotNetObjectReference<MainPage>? lineupReference;
 
     private int TransferPageCount => Math.Max(1, (filteredTransfers.Count + TransferPageSize - 1) / TransferPageSize);
 
     private string CommunityName => Session.Session?.Community?.Name ?? "";
 
-    private string QueryTitle => titleKey == TextKey.SquadExcess && !string.IsNullOrWhiteSpace(squadMatchdayKey)
-        ? Text.Format(TextKey.SquadExcessMatchday, squadMatchdayKey)
-        : Text[titleKey];
+    private IReadOnlyList<PlayerDetailsModel> Substitutes => squadStatus?
+        .Where(player => !lineup.Any(starter => starter?.Id == player.Id)).ToArray() ?? [];
+
+    private string SquadTitle => !string.IsNullOrWhiteSpace(squadResult?.MatchdayKey)
+        ? Text.Format(TextKey.SquadExcessMatchday, squadResult.MatchdayKey)
+        : Text[TextKey.SquadExcess];
+
+    private IReadOnlyList<(string Name, string Value)> SquadRows => squadResult?.Squads.Select(row =>
+        (row.UserName, row.PlayerCount.ToString("N0", Text.Culture))).ToArray() ?? [];
 
     private string? Message => error is not null ? Text.ErrorMessage(error)
         : messageKey is { } key ? Text[key] : null;
@@ -98,6 +123,7 @@
                 tabs.Add(new(Text[TextKey.Money], MoneyActions));
 
             tabs.Add(new(Text[TextKey.Queries], QueryActions));
+            tabs.Add(new(Text[TextKey.Squad], SquadActions));
             tabs.Add(new(Text[TextKey.Market], MarketContent));
             return tabs;
         }
@@ -137,9 +163,6 @@
             <button type="button" class="action-button bonus" disabled="@busy" @onclick="ShowPoints">
                 @Text[TextKey.QueryPoints]
             </button>
-            <button type="button" class="action-button revert" disabled="@busy" @onclick="ShowSquadExcess">
-                @Text[TextKey.QuerySquads]
-            </button>
             <button type="button" class="action-button points" disabled="@busy" @onclick="ShowClassifications">
                 @Text[TextKey.Standings]
             </button>
@@ -173,8 +196,8 @@
         @if (queryResultsVisible)
         {
             <section class="query-results" aria-labelledby="query-result-title" aria-live="polite">
-                <h2 id="query-result-title">@QueryTitle</h2>
-                <ActionResults Rows="Rows" ValueHeading="@Text[headingKey]" Message="@Message" RowClass="GetQueryRowClass" />
+                <h2 id="query-result-title">@Text[titleKey]</h2>
+                <ActionResults Rows="Rows" ValueHeading="@Text[headingKey]" Message="@Message" />
                 <div class="query-result-actions">
                     <button type="button" class="action-button query" disabled="@busy" @onclick="HideQueryResults">
                         @Text[TextKey.Hide]
@@ -183,6 +206,125 @@
             </section>
         }
     </div>;
+
+    private RenderFragment SquadActions => @<div class="action-panel squad-panel">
+        <div class="squad-buttons">
+            <button type="button" class="action-button revert" disabled="@busy" @onclick="ShowSquadExcess">
+                @Text[TextKey.QuerySquads]
+            </button>
+            <button type="button" class="action-button comunio" disabled="@busy" @onclick="ShowSquadStatus">
+                @Text[TextKey.SquadStatus]
+            </button>
+        </div>
+        @if (squadResult is not null || squadError is not null)
+        {
+            <section class="squad-results" aria-labelledby="squad-result-title" aria-live="polite">
+                <h2 id="squad-result-title">@SquadTitle</h2>
+                <p class="squad-excess-note">@Text[TextKey.SquadExcessNote]</p>
+                <ActionResults Rows="SquadRows" ValueHeading="@Text[TextKey.Players]"
+                               Message="@(squadError is not null ? Text.ErrorMessage(squadError) : null)" RowClass="GetSquadRowClass" />
+                <div class="squad-result-actions">
+                    <button type="button" class="action-button query" disabled="@busy" @onclick="HideSquadResults">
+                        @Text[TextKey.Hide]
+                    </button>
+                </div>
+            </section>
+        }
+        @if (squadStatus is not null || squadStatusError is not null)
+        {
+            @SquadStatusResults
+        }
+    </div>;
+
+    private RenderFragment SquadStatusResults => @<section class="squad-status-results" aria-labelledby="squad-status-title" aria-live="polite">
+        <div class="squad-title">
+            <h2 id="squad-status-title">@Text[TextKey.SquadStatus]</h2>
+            <LineupHelp />
+        </div>
+        @if (squadStatusError is not null)
+        {
+            <p role="alert">@Text.ErrorMessage(squadStatusError)</p>
+        }
+        else if (squadStatus is not null)
+        {
+            <label class="formation-picker">
+                <span>@Text[TextKey.Formation]</span>
+                <select disabled="@busy" @bind="lineupFormation" @bind:after="ChangeFormation">
+                    @foreach (var formation in Formations)
+                    {
+                        <option value="@formation">@string.Join("-", ((int)formation).ToString().ToCharArray())</option>
+                    }
+                </select>
+            </label>
+            <div class="squad-lineup" @ref="lineupElement">
+                <section aria-labelledby="starters-title">
+                    <h3 id="starters-title">@Text[TextKey.Starters]</h3>
+                    <ol class="squad-status-grid starters-list">
+                        @for (var index = 0; index < lineup.Length; index++)
+                        {
+                            var slotIndex = index;
+                            var player = lineup[slotIndex];
+                            <li class="transfer-row lineup-player @(player is null ? $"empty-{lineupFormation.GetSlotPosition(slotIndex).ToString().ToLowerInvariant()}" : null)" data-position="@(11 - slotIndex)"
+                                data-lineup-slot="@slotIndex" data-lineup-position="@lineupFormation.GetSlotPosition(slotIndex)"
+                                data-lineup-player="@player?.Id" data-player-position="@player?.Position" tabindex="0" @key="slotIndex">
+                                @if (player is not null)
+                                {
+                                    <SquadPlayerCard Player="player" />
+                                }
+                                else
+                                {
+                                    <span class="empty-slot" role="img" title="@GetSlotLabel(slotIndex)"
+                                          aria-label="@($"{Text.Format(TextKey.EmptyLineupSlot, 11 - slotIndex)}: {GetSlotLabel(slotIndex)}")">
+                                        <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                                    </span>
+                                }
+                            </li>
+                        }
+                    </ol>
+                </section>
+                <section aria-labelledby="substitutes-title" data-lineup-bench tabindex="0">
+                    <h3 id="substitutes-title">@Text[TextKey.Substitutes]</h3>
+                    <ul class="squad-status-grid substitutes-list">
+                        @foreach (var player in Substitutes)
+                        {
+                            <li class="transfer-row lineup-player" data-lineup-player="@player.Id"
+                                data-lineup-substitute="@player.Id" data-player-position="@player.Position" tabindex="0" @key="player.Id">
+                                <SquadPlayerCard Player="player" />
+                            </li>
+                        }
+                    </ul>
+                    @if (Substitutes.Count == 0)
+                    {
+                        <p>@Text[TextKey.NoResults]</p>
+                    }
+                </section>
+            </div>
+        }
+        else
+        {
+            <p>@Text[TextKey.NoResults]</p>
+        }
+        @if (lineupSaveError is not null)
+        {
+            <p role="alert">@(lineupSaveMessage is { } errorKey ? Text[errorKey] : Text.ErrorMessage(lineupSaveError))</p>
+        }
+        else if (lineupSaveMessage == TextKey.LineupSaved)
+        {
+            <LineupSaveConfirmation Closed="ClearLineupSaveFeedback" />
+        }
+        <div class="squad-result-actions">
+            @if (squadStatus is not null && squadStatusError is null)
+            {
+                <button type="button" class="action-button comunio save-lineup" disabled="@busy" @onclick="SaveLineup">
+                    <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+                    @Text[TextKey.Save]
+                </button>
+            }
+            <button type="button" class="action-button query" disabled="@busy" @onclick="HideSquadStatus">
+                @Text[TextKey.Hide]
+            </button>
+        </div>
+    </section>;
 
     private RenderFragment MarketContent => @<div class="action-panel market-panel">
         <button type="button" class="action-button market" disabled="@busy" @onclick="ShowTransferHistory">
@@ -262,6 +404,79 @@
         }
     </div>;
 
+    [JSInvokable]
+    public Task MoveLineupPlayer(string playerId, int? targetSlot, string? substituteId) => InvokeAsync(() =>
+    {
+        if (busy || squadStatus is null)
+        {
+            return;
+        }
+
+        var sourceSlot = Array.FindIndex(lineup, player => player?.Id == playerId);
+        var player = sourceSlot >= 0 ? lineup[sourceSlot] : Substitutes.FirstOrDefault(player => player.Id == playerId);
+
+        if (player is null)
+        {
+            return;
+        }
+
+        if (targetSlot is int slot)
+        {
+            if (slot < 0 || slot >= lineup.Length || player.Position != lineupFormation.GetSlotPosition(slot)
+                || (sourceSlot >= 0 && lineup[slot] is { } displaced && displaced.Position != lineupFormation.GetSlotPosition(sourceSlot)))
+            {
+                return;
+            }
+
+            if (sourceSlot == slot)
+            {
+                return;
+            }
+
+            if (sourceSlot >= 0)
+                lineup[sourceSlot] = lineup[slot];
+
+            lineup[slot] = player;
+        }
+        else if (sourceSlot >= 0)
+        {
+            var replacement = substituteId is not null ? Substitutes.FirstOrDefault(player => player.Id == substituteId) : null;
+
+            if (substituteId is not null && (replacement is null || replacement.Position != lineupFormation.GetSlotPosition(sourceSlot)))
+            {
+                return;
+            }
+
+            lineup[sourceSlot] = replacement;
+        }
+        else
+        {
+            return;
+        }
+
+        ClearLineupSaveFeedback();
+        StateHasChanged();
+    });
+
+    public async ValueTask DisposeAsync()
+    {
+        Session.SessionChanged -= OnSessionChanged;
+
+        if (lineupModule is not null)
+        {
+            try
+            {
+                if (boundLineupElement is { } element)
+                    await lineupModule.InvokeVoidAsync("detach", element);
+
+                await lineupModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
+        }
+
+        lineupReference?.Dispose();
+    }
+
     protected override void OnInitialized()
     {
         Session.SessionChanged += OnSessionChanged;
@@ -269,6 +484,34 @@
         try { UpdateSession(); }
         catch { ShowMessage(TextKey.RestoreSessionError); }
         finally { busy = false; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (squadStatus is null || squadStatusError is not null)
+        {
+            if (lineupModule is not null && boundLineupElement is { } previous)
+            {
+                await lineupModule.InvokeVoidAsync("detach", previous);
+                boundLineupElement = null;
+            }
+
+            return;
+        }
+
+        if (boundLineupElement?.Id == lineupElement.Id)
+        {
+            return;
+        }
+
+        lineupModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/ComunioAdminTools.UI/lineupDrag.js");
+
+        if (boundLineupElement is { } oldElement)
+            await lineupModule.InvokeVoidAsync("detach", oldElement);
+
+        lineupReference ??= DotNetObjectReference.Create(this);
+        await lineupModule.InvokeVoidAsync("attach", lineupElement, lineupReference);
+        boundLineupElement = lineupElement;
     }
 
     private void UpdateSession()
@@ -363,11 +606,94 @@
 
     private Task ShowSquadExcess() => Run(async () =>
     {
-        classificationSelectorsVisible = false;
-        var result = await Squads.GetSquadExcess();
-        ShowRows(TextKey.SquadExcess, TextKey.Players, result.Squads.Select(x => (x.UserName, x.PlayerCount)).ToArray());
-        squadMatchdayKey = result.MatchdayKey;
+        HideSquadStatus();
+        squadResult = null;
+        squadError = null;
+
+        try
+        {
+            squadResult = await Squads.GetSquadExcess();
+        }
+        catch (Exception ex)
+        {
+            squadError = ex;
+        }
     });
+
+    private Task ShowSquadStatus() => Run(async () =>
+    {
+        HideSquadResults();
+        ClearLineupSaveFeedback();
+        squadStatus = null;
+        squadStatusError = null;
+        lineup = new PlayerDetailsModel?[11];
+
+        try
+        {
+            var players = await Squads.GetSquadStatus();
+            var result = await Squads.GetLineup();
+            lineup = result.Starters.ToArray();
+            lineupFormation = result.Formation;
+            ChangeFormation();
+            squadStatus = players;
+        }
+        catch (Exception ex)
+        {
+            squadStatusError = ex;
+        }
+    });
+
+    private void ChangeFormation()
+    {
+        ClearLineupSaveFeedback();
+
+        for (var index = 0; index < lineup.Length; index++)
+        {
+            if (lineup[index]?.Position != lineupFormation.GetSlotPosition(index))
+                lineup[index] = null;
+        }
+    }
+
+    private string GetSlotLabel(int index) => Text[lineupFormation.GetSlotPosition(index) switch
+    {
+        PlayerPosition.Keeper => TextKey.Goalkeeper,
+        PlayerPosition.Defender => TextKey.Defender,
+        PlayerPosition.Midfielder => TextKey.Midfielder,
+        _ => TextKey.Striker
+    }];
+
+    private Task SaveLineup() => Run(async () =>
+    {
+        if (squadStatus is null)
+        {
+            return;
+        }
+
+        ClearLineupSaveFeedback();
+        var sent = false;
+
+        try
+        {
+            await Squads.SaveLineup(lineupFormation, lineup);
+            sent = true;
+            var result = await Squads.GetLineup();
+            lineup = result.Starters.ToArray();
+            lineupFormation = result.Formation;
+            ChangeFormation();
+            lineupSaveMessage = TextKey.LineupSaved;
+        }
+        catch (Exception ex)
+        {
+            lineupSaveError = ex;
+            lineupSaveMessage = sent ? TextKey.LineupReloadFailed : null;
+        }
+    });
+
+    private void ClearLineupSaveFeedback()
+    {
+        lineupSaveMessage = null;
+        lineupSaveError = null;
+    }
 
     private Task ShowClassifications() => Run(async () =>
     {
@@ -438,7 +764,6 @@
     private void ShowRows(TextKey title, TextKey heading, IReadOnlyList<(string Name, int Value)> result, TextKey? message = null)
     {
         titleKey = title;
-        squadMatchdayKey = null;
         headingKey = heading;
         values = result;
         messageKey = message;
@@ -446,9 +771,8 @@
         queryResultsVisible = true;
     }
 
-    private string? GetQueryRowClass(int index) => titleKey == TextKey.SquadExcess
-        ? values[index].Value > 25 ? "row-over-limit" : "row-within-limit"
-        : null;
+    private string GetSquadRowClass(int index) => squadResult!.Squads[index].PlayerCount > 25
+        ? "row-over-limit" : "row-within-limit";
 
     private void ShowMessage(TextKey message) => ShowRows(TextKey.Error, TextKey.Amount, [], message);
 
@@ -456,12 +780,25 @@
 
     private void HideQueryResults()
     {
-        squadMatchdayKey = null;
         classificationSelectorsVisible = false;
         queryResultsVisible = false;
         values = [];
         messageKey = null;
         error = null;
+    }
+
+    private void HideSquadResults()
+    {
+        squadResult = null;
+        squadError = null;
+    }
+
+    private void HideSquadStatus()
+    {
+        ClearLineupSaveFeedback();
+        squadStatus = null;
+        squadStatusError = null;
+        lineup = new PlayerDetailsModel?[11];
     }
 
     private void OnSessionChanged() => _ = InvokeAsync(() =>
@@ -476,11 +813,6 @@
 
         StateHasChanged();
     });
-
-    public void Dispose()
-    {
-        Session.SessionChanged -= OnSessionChanged;
-    }
 
     private enum ClassificationPeriod { Month, FirstHalf, SecondHalf, Season }
 

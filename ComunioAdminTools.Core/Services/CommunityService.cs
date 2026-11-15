@@ -4,24 +4,17 @@ using ComunioAdminTools.Core.Localization;
 
 namespace ComunioAdminTools.Core.Services;
 
-public abstract class CommunityService : ComunioService
+public abstract class CommunityService(IHttpClientFactory factory, ISessionManager sessionManager, AppLocalization text) 
+    : ComunioService(factory, text)
 {
-    protected readonly ISessionManager sessionManager;
-
-    protected CommunityService(IHttpClientFactory factory, ISessionManager sessionManager, AppLocalization text) : base(factory, text)
-    {
-        this.sessionManager = sessionManager;
-    }
+    protected readonly ISessionManager sessionManager = sessionManager;
 
     protected SessionDataModel Session => sessionManager.Session
         ?? throw new AuthenticationRequiredException(text, TextKey.SignInRequired);
 
-    public async Task<StandingsModel> GetStandings()
-    {
-        var session = Session;
-        //if (!session.User.IsLeader && !session.User.IsAdmin)
-        //    throw new UnauthorizedAccessException(text[TextKey.PermissionDenied]);
+    protected string GetCommunityUriPart() => $"communities/{Uri.EscapeDataString(Session.Community.Id)}";
 
-        return await Get<StandingsModel>($"communities/{Uri.EscapeDataString(session.Community.Id)}/standings?period=total&wpe=true");
-    }
+    protected async Task<StandingsModel> GetStandings() =>
+        await Get<StandingsModel>($"communities/{Uri.EscapeDataString(Session.Community.Id)}/standings?period=total&wpe=true");
+    
 }

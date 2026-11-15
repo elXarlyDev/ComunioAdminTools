@@ -1,0 +1,4 @@
+.status-active { color: #237a3b; }
+.status-injured { color: #c13333; }
+.status-caution { color: #f0a14a; }
+.status-banned { color: #c13333; transform: scaleX(.7); }

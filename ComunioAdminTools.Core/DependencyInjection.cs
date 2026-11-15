@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddTransient<PointsService>();
         services.AddTransient<IPointsService>(provider => provider.GetRequiredService<PointsService>());
         services.AddTransient<SquadService>();
+        services.AddTransient<ISquadService>(provider => provider.GetRequiredService<SquadService>());
         services.AddTransient<IMarketService, MarketService>();
 
         services.AddHttpClient("ComunioAuth", client =>
