@@ -1,5 +1,9 @@
 # ComunioAdminTools
 
+Las prácticas compartidas de desarrollo se mantienen en [AGENTS.md](AGENTS.md),
+la gobernanza para todo el repositorio. Consulta ese archivo antes de realizar
+cambios y registra allí las nuevas convenciones acordadas.
+
 La solución contiene cuatro proyectos activos:
 
 - `ComunioAdminTools.Core`: modelos, autenticación, sesión y servicios de Comunio.

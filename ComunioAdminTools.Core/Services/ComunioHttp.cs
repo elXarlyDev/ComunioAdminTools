@@ -6,7 +6,7 @@ namespace ComunioAdminTools.Core.Services;
 
 internal static class ComunioHttp
 {
-    public static async Task<HttpResponseMessage> SendAsync(
+    public static async Task<HttpResponseMessage> Send(
         HttpClient client, HttpRequestMessage request, AppLocalization text, CancellationToken cancellationToken = default)
     {
         try { return await client.SendAsync(request, cancellationToken); }
@@ -22,7 +22,11 @@ internal static class ComunioHttp
 
     public static void EnsureSuccess(HttpResponseMessage response, AppLocalization text)
     {
-        if (response.IsSuccessStatusCode) return;
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
         var key = response.StatusCode switch
         {
             HttpStatusCode.Unauthorized => TextKey.SessionExpired,
@@ -32,6 +36,7 @@ internal static class ComunioHttp
             >= HttpStatusCode.InternalServerError => TextKey.ServiceUnavailable,
             _ => TextKey.HttpError
         };
+
         throw new LocalizedHttpRequestException(text, key, response.StatusCode);
     }
 

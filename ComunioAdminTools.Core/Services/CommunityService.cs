@@ -16,12 +16,12 @@ public abstract class CommunityService : ComunioService
     protected SessionDataModel Session => sessionManager.Session
         ?? throw new AuthenticationRequiredException(text, TextKey.SignInRequired);
 
-    public async Task<StandingsModel> GetStandingsAsync()
+    public async Task<StandingsModel> GetStandings()
     {
         var session = Session;
         //if (!session.User.IsLeader && !session.User.IsAdmin)
         //    throw new UnauthorizedAccessException(text[TextKey.PermissionDenied]);
 
-        return await GetAsync<StandingsModel>($"communities/{Uri.EscapeDataString(session.Community.Id)}/standings?period=total&wpe=true");
+        return await Get<StandingsModel>($"communities/{Uri.EscapeDataString(session.Community.Id)}/standings?period=total&wpe=true");
     }
 }

@@ -1,4 +1,27 @@
-# Ámbito de trabajo y migración
+# Gobernanza del proyecto
+
+Este archivo reúne las prácticas de desarrollo aplicables a todo el repositorio,
+incluidos Web, UI, Core, Mobile y sus comprobaciones. Consultarlo antes de
+modificar el proyecto.
+
+## Mantenimiento de las prácticas
+
+- Registrar aquí las convenciones compartidas y las decisiones que deban
+  conservarse entre tareas, en la sección de su responsabilidad.
+- Incorporar las prácticas acordadas con una indicación concreta de qué hacer
+  y, cuando sea necesario, el motivo o el ámbito en que se aplican.
+- Antes de añadir una regla, revisar las existentes y actualizar o unificar la
+  correspondiente para evitar duplicaciones y contradicciones.
+- Mantener aquí las reglas comunes. Documentar los detalles de un subsistema
+  en su README y enlazarlo desde este archivo cuando sea necesario para aplicar
+  una regla. Reservar los skills para procedimientos específicos reutilizables.
+- No convertir una solución puntual en una regla general sin una necesidad
+  compartida. Retirar o actualizar las prácticas que dejen de corresponder al
+  funcionamiento real del proyecto.
+- Mantener los comandos de ejecución y verificación en README.md y actualizar
+  esa documentación cuando cambien, sin duplicarlos aquí.
+
+## Ámbito de trabajo y migración
 
 El proyecto original de la raíz se ha retirado tras migrar sus funcionalidades.
 Los proyectos activos son:
@@ -44,9 +67,15 @@ las que no resulte viable usar una interfaz.
 - Unificar componentes que siempre colaboran en una misma operación cuando su
   separación solo añada encadenamiento o coordinación innecesaria.
 - Elegir nombres que describan la operación y la responsabilidad del componente.
-  En el gestor de sesión, usar LoadAsync y ClearAsync; reservar LoginAsync y
-  LogoutAsync para el servicio de autenticación. Mantener el sufijo Async en los
-  métodos asíncronos.
+  En el gestor de sesión, usar Load y Clear; reservar Login y
+  Logout para el servicio de autenticación.
+- Nombrar los métodos asíncronos propios sin la palabra `Async`, también en
+  interfaces, auxiliares, componentes Razor y pruebas. Por ejemplo: `Load`,
+  `Clear`, `Login` y `Logout`. Actualizar sus referencias y documentación al
+  renombrarlos. Conservar los nombres impuestos por contratos externos
+  (overrides e implementaciones de interfaces del framework o bibliotecas),
+  como `SendAsync`, `OnAfterRenderAsync` y `DisposeAsync`, y los de las llamadas
+  a APIs externas.
 
 ## Coordinación y concurrencia
 
@@ -60,11 +89,25 @@ las que no resulte viable usar una interfaz.
   operación asíncrona: un handler o servicio invocado puede intentar adquirir el
   mismo semáforo. Preferir eliminar esa dependencia circular del flujo.
 - La carga inicial del perfil usa el token explícito y un cliente sin handler
-  de sesión, permitiendo que LoadAsync proteja toda la carga y su limpieza con
+  de sesión, permitiendo que Load proteja toda la carga y su limpieza con
   un único bloqueo. La limpieza dentro del bloqueo no debe volver a adquirirlo.
 - Emitir las notificaciones de cambio de sesión después de liberar el bloqueo.
 
 ## Organización de clases C#
+
+Separar con una línea en blanco las instrucciones que ocupen más de una línea
+de las instrucciones adyacentes, tanto antes como después, en C# y en los
+bloques `@code` de Razor, incluidas las pruebas. Aplicar la regla a declaraciones,
+asignaciones, llamadas encadenadas y estructuras de control multilínea. Mantener
+unidas las partes de una misma instrucción (`if/else`, `try/catch/finally`,
+`do/while`), sus comentarios y sus argumentos o inicializadores. No añadir líneas
+en blanco junto a las llaves que delimitan el bloque ni separar instrucciones
+consecutivas de una sola línea por esta regla.
+
+Usar llaves también cuando el cuerpo de un `if` contenga únicamente una
+instrucción `return` o `throw`, aunque quepa en una sola línea. Escribir la
+apertura, la instrucción y el cierre en líneas separadas. Aplicar esta regla en
+C#, en los bloques `@code` de Razor y en las pruebas.
 
 Mantener un orden uniforme de miembros para facilitar la lectura:
 

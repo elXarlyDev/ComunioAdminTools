@@ -10,25 +10,31 @@ namespace ComunioAdminTools.Core.Authentication;
 
 public sealed class ComunioTokenClient(IHttpClientFactory factory, AppLocalization text) : IComunioTokenClient
 {
-    public Task<TokenSession> LoginAsync(string username, string password, CancellationToken cancellationToken = default)
-        => RequestTokenAsync(new { username, password }, null, cancellationToken);
+    public Task<TokenSession> Login(string username, string password, CancellationToken cancellationToken = default)
+        => RequestToken(new { username, password }, null, cancellationToken);
 
-    public Task<TokenSession> RefreshAsync(string refreshToken, CancellationToken cancellationToken = default)
-        => RequestTokenAsync(new { refresh_token = refreshToken }, refreshToken, cancellationToken);
+    public Task<TokenSession> Refresh(string refreshToken, CancellationToken cancellationToken = default)
+        => RequestToken(new { refresh_token = refreshToken }, refreshToken, cancellationToken);
 
-    private async Task<TokenSession> RequestTokenAsync(object payload, string? previousRefreshToken, CancellationToken cancellationToken)
+    private async Task<TokenSession> RequestToken(object payload, string? previousRefreshToken, CancellationToken cancellationToken)
     {
         using var client = factory.CreateClient("ComunioAuth");
+
         using var request = new HttpRequestMessage(HttpMethod.Post, "login")
         {
             Content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json")
         };
+
         using var response = await client.SendAsync(request, cancellationToken);
+
         if (response.StatusCode != HttpStatusCode.OK)
+        {
             throw new AuthenticationRequiredException(text, TextKey.SignInError);
+        }
 
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
         var result = ComunioHttp.Deserialize<TokenResponse>(body, text, TextKey.SignInError);
+
         return new TokenSession(
             result.AccessToken ?? "",
             string.IsNullOrWhiteSpace(result.RefreshToken) ? previousRefreshToken : result.RefreshToken,

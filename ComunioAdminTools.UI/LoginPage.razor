@@ -13,7 +13,7 @@
                 <h1>Comunio</h1>
                 <p>Admin Tools</p>
             </header>
-            <form @onsubmit="LoginAsync" @onsubmit:preventDefault aria-busy="@(busy ? "true" : "false")">
+            <form @onsubmit="Login" @onsubmit:preventDefault aria-busy="@(busy ? "true" : "false")">
                 <label class="credential">
                     <span>@Text[TextKey.Username]</span>
                     <input type="text" placeholder="@Text[TextKey.UsernamePlaceholder]" autocomplete="username"
@@ -44,14 +44,19 @@
     private bool busy;
     private bool loginFailed;
 
-    private async Task LoginAsync()
+    private async Task Login()
     {
-        if (busy) return;
+        if (busy)
+        {
+            return;
+        }
+
         busy = true;
         loginFailed = false;
+
         try
         {
-            await Auth.LoginAsync(username, password);
+            await Auth.Login(username, password);
         }
         catch
         {

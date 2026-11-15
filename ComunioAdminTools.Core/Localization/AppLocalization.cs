@@ -12,6 +12,7 @@ public sealed class AppLocalization
     // not depend on downloading a satellite assembly or on process-wide culture.
     private static readonly ResourceManager SpanishResources = new(
         "ComunioAdminTools.Core.Localization.Strings.es-ES", typeof(AppLocalization).Assembly);
+
     private static readonly ResourceManager ValencianResources = new(
         "ComunioAdminTools.Core.Localization.Strings.ca-ES-valencia", typeof(AppLocalization).Assembly);
 
@@ -27,6 +28,7 @@ public sealed class AppLocalization
     public string GetString(TextKey key)
     {
         var manager = Language == ValencianCulture ? ValencianResources : SpanishResources;
+
         return manager.GetString(key.ToString(), CultureInfo.InvariantCulture)
             ?? SpanishResources.GetString(key.ToString(), CultureInfo.InvariantCulture)
             ?? throw new MissingManifestResourceException(key.ToString());
@@ -38,7 +40,12 @@ public sealed class AppLocalization
     public void SetCulture(string? culture)
     {
         var normalized = NormalizeCulture(culture);
-        if (Language == normalized) return;
+
+        if (Language == normalized)
+        {
+            return;
+        }
+
         Culture = CultureInfo.GetCultureInfo(normalized);
         Changed?.Invoke();
     }

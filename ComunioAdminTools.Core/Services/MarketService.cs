@@ -8,17 +8,18 @@ namespace ComunioAdminTools.Core.Services;
 
 public interface IMarketService
 {
-    Task<IReadOnlyList<TransferModel>> GetTransferHistoryAsync();
-    Task<IReadOnlyList<string>> GetCommunityUserNamesAsync();
+    Task<IReadOnlyList<TransferModel>> GetTransferHistory();
+    Task<IReadOnlyList<string>> GetCommunityUserNames();
 }
 
 public sealed class MarketService(IHttpClientFactory factory, ISessionManager sessionManager, AppLocalization text)
     : CommunityService(factory, sessionManager, text), IMarketService
 {
-    public async Task<IReadOnlyList<TransferModel>> GetTransferHistoryAsync()
+    public async Task<IReadOnlyList<TransferModel>> GetTransferHistory()
     {
         var session = Session;
-        var history = await GetAsync<HistoryResponse>(
+
+        var history = await Get<HistoryResponse>(
             $"communities/{Uri.EscapeDataString(session.Community.Id)}/users/{Uri.EscapeDataString(session.User.Id)}/offers/history?limit=999999");
 
         // History uses tradingPartner as seller and user as buyer for both SALE and PURCHASE.
@@ -27,9 +28,9 @@ public sealed class MarketService(IHttpClientFactory factory, ISessionManager se
             offer.Tradable.QuotedPrice, offer.DateChanged)).ToArray();
     }
 
-    public async Task<IReadOnlyList<string>> GetCommunityUserNamesAsync()
+    public async Task<IReadOnlyList<string>> GetCommunityUserNames()
     {
-        var standings = await GetStandingsAsync();
+        var standings = await GetStandings();
         return standings.Teams.Select(team => team.TeamInfo.User.Name.Trim()).ToArray();
     }
 

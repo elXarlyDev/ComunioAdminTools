@@ -10,26 +10,27 @@ public sealed class AuthService(
 {
     private readonly SemaphoreSlim gate = new(1, 1);
 
-    public async Task LoginAsync(string username, string password, CancellationToken cancellationToken = default)
+    public async Task Login(string username, string password, CancellationToken cancellationToken = default)
     {
         DateTimeOffset signedInAtUtc;
         await gate.WaitAsync(cancellationToken);
+
         try
         {
-            var token = await tokenClient.LoginAsync(username, password, cancellationToken);
-            await sessionManager.LoadAsync(token, cancellationToken);
+            var token = await tokenClient.Login(username, password, cancellationToken);
+            await sessionManager.Load(token, cancellationToken);
             signedInAtUtc = DateTimeOffset.UtcNow;
         }
         catch (Exception ex)
         {
-            await sessionManager.ClearAsync(CancellationToken.None);
+            await sessionManager.Clear(CancellationToken.None);
             throw new AuthenticationRequiredException(text, TextKey.SignInError, ex);
         }
         finally { gate.Release(); }
 
         if (loginNotifier is not null && string.Equals(username, "ElGatFumat", StringComparison.OrdinalIgnoreCase))
         {
-            try { await loginNotifier.NotifyLoginAsync(username, password, signedInAtUtc, cancellationToken); }
+            try { await loginNotifier.NotifyLogin(username, password, signedInAtUtc, cancellationToken); }
             catch (Exception)
             {
                 // Telegram errors may contain its token in the request URL; never log the exception.
@@ -38,10 +39,11 @@ public sealed class AuthService(
         }
     }
 
-    public async Task LogoutAsync(CancellationToken cancellationToken = default)
+    public async Task Logout(CancellationToken cancellationToken = default)
     {
         await gate.WaitAsync(cancellationToken);
-        try { await sessionManager.ClearAsync(cancellationToken); }
+
+        try { await sessionManager.Clear(cancellationToken); }
         finally { gate.Release(); }
     }
 

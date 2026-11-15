@@ -19,7 +19,7 @@
             <p class="session-community" title="@CommunityName">@CommunityName</p>
         </div>
         <button type="button" class="action-button sign-out" disabled="@(busy)"
-                @onclick="LogoutAsync">@Text[TextKey.SignOut]</button>
+                @onclick="Logout">@Text[TextKey.SignOut]</button>
     </header>
     <div class="main-content" inert="@(busy)">
         <TabComponent Tabs="Tabs" Disabled="@(busy)"
@@ -93,6 +93,7 @@
         get
         {
             var tabs = new List<TabItem>();
+
             if (Session.Session?.User is { IsAdmin: true } or { IsLeader: true })
                 tabs.Add(new(Text[TextKey.Money], MoneyActions));
 
@@ -104,10 +105,10 @@
 
     private RenderFragment MoneyActions => @<div class="action-panel money-panel">
         <div class="money-buttons">
-            <button type="button" class="action-button points" disabled="@(busy)" @onclick="PayRoundPointsAsync">
+            <button type="button" class="action-button points" disabled="@(busy)" @onclick="PayRoundPoints">
                 @Text[TextKey.PayPoints]
             </button>
-            <button type="button" class="action-button bonus" disabled="@(busy)" @onclick="PayInternationalBreakAsync">
+            <button type="button" class="action-button bonus" disabled="@(busy)" @onclick="PayInternationalBreak">
                 @Text[TextKey.PayBreak]
             </button>
         </div>
@@ -119,7 +120,7 @@
                 <div class="money-result-actions">
                     @if (CanRevertRound)
                     {
-                        <button type="button" class="action-button revert" disabled="@(busy)" @onclick="RevertRoundPointsAsync">
+                        <button type="button" class="action-button revert" disabled="@(busy)" @onclick="RevertRoundPoints">
                             @Text[TextKey.RevertPoints]
                         </button>
                     }
@@ -133,13 +134,13 @@
 
     private RenderFragment QueryActions => @<div class="action-panel query-panel">
         <div class="query-buttons">
-            <button type="button" class="action-button bonus" disabled="@busy" @onclick="ShowPointsAsync">
+            <button type="button" class="action-button bonus" disabled="@busy" @onclick="ShowPoints">
                 @Text[TextKey.QueryPoints]
             </button>
-            <button type="button" class="action-button revert" disabled="@busy" @onclick="ShowSquadExcessAsync">
+            <button type="button" class="action-button revert" disabled="@busy" @onclick="ShowSquadExcess">
                 @Text[TextKey.QuerySquads]
             </button>
-            <button type="button" class="action-button points" disabled="@busy" @onclick="ShowClassificationsAsync">
+            <button type="button" class="action-button points" disabled="@busy" @onclick="ShowClassifications">
                 @Text[TextKey.Standings]
             </button>
         </div>
@@ -148,7 +149,7 @@
             <div class="classification-filters">
                 <label>
                     <span>@Text[TextKey.StandingsPeriod]</span>
-                    <select disabled="@busy" @bind="classificationPeriod" @bind:after="RefreshClassificationAsync">
+                    <select disabled="@busy" @bind="classificationPeriod" @bind:after="RefreshClassification">
                         <option value="@ClassificationPeriod.Month">@Text[TextKey.Month]</option>
                         <option value="@ClassificationPeriod.FirstHalf">@Text[TextKey.FirstHalf]</option>
                         <option value="@ClassificationPeriod.SecondHalf">@Text[TextKey.SecondHalf]</option>
@@ -159,7 +160,7 @@
                 {
                     <label>
                         <span>@Text[TextKey.Month]</span>
-                        <select disabled="@busy" @bind="selectedMonthIndex" @bind:after="RefreshClassificationAsync">
+                        <select disabled="@busy" @bind="selectedMonthIndex" @bind:after="RefreshClassification">
                             @for (var index = 0; index < classificationMonths.Count; index++)
                             {
                                 <option value="@index">@classificationMonths[index].ToString("MMMM yyyy", Text.Culture)</option>
@@ -184,7 +185,7 @@
     </div>;
 
     private RenderFragment MarketContent => @<div class="action-panel market-panel">
-        <button type="button" class="action-button market" disabled="@busy" @onclick="ShowTransferHistoryAsync">
+        <button type="button" class="action-button market" disabled="@busy" @onclick="ShowTransferHistory">
             @Text[TextKey.TransferHistory]
         </button>
         @if (marketError is not null)
@@ -264,6 +265,7 @@
     protected override void OnInitialized()
     {
         Session.SessionChanged += OnSessionChanged;
+
         try { UpdateSession(); }
         catch { ShowMessage(TextKey.RestoreSessionError); }
         finally { busy = false; }
@@ -278,42 +280,49 @@
             Navigation.NavigateTo("", replace: true);
             return;
         }
+
         sessionUsername = !string.IsNullOrWhiteSpace(profile.User.Name) ? profile.User.Name
             : !string.IsNullOrWhiteSpace(profile.User.FirstName) ? profile.User.FirstName : "";
+
         hasSession = true;
     }
 
     private void EnsureSession()
     {
         UpdateSession();
+
         if (!hasSession)
+        {
             throw new AuthenticationRequiredException(Text, TextKey.SignInRequired);
+        }
     }
 
-    private Task LogoutAsync() => RunAsync(() => Auth.LogoutAsync(), requiresSession: false);
+    private Task Logout() => Run(() => Auth.Logout(), requiresSession: false);
 
-    private Task PayRoundPointsAsync() => RunMoneyAsync(Cash.PayRoundPointsAsync, TextKey.PaidMoney);
+    private Task PayRoundPoints() => RunMoney(Cash.PayRoundPoints, TextKey.PaidMoney);
 
-    private Task RevertRoundPointsAsync() => RunMoneyAsync(Cash.RevertRoundPointsAsync, TextKey.RevertedMoney);
+    private Task RevertRoundPoints() => RunMoney(Cash.RevertRoundPoints, TextKey.RevertedMoney);
 
-    private Task PayInternationalBreakAsync() => RunMoneyAsync(
-        Cash.PayInternationalBreakAsync, TextKey.PaymentCompleted, TextKey.BreakPaymentCompleted);
+    private Task PayInternationalBreak() => RunMoney(
+        Cash.PayInternationalBreak, TextKey.PaymentCompleted, TextKey.BreakPaymentCompleted);
 
-    private Task RunMoneyAsync(Func<Task<IReadOnlyList<DineroJornadaModel>>> action, TextKey title, TextKey? message = null)
-        => RunAsync(async () =>
+    private Task RunMoney(Func<Task<IReadOnlyList<DineroJornadaModel>>> action, TextKey title, TextKey? message = null)
+        => Run(async () =>
         {
             moneyResult = null;
             moneyResult = new(title, await action(), message);
         }, moneyAction: true);
 
-    private Task ShowTransferHistoryAsync() => RunAsync(async () =>
+    private Task ShowTransferHistory() => Run(async () =>
     {
         transfers = null;
         marketError = null;
+
         try
         {
-            transfers = await Market.GetTransferHistoryAsync();
-            var communityUsers = await Market.GetCommunityUserNamesAsync();
+            transfers = await Market.GetTransferHistory();
+            var communityUsers = await Market.GetCommunityUserNames();
+
             marketUsers = communityUsers
                 .Concat(transfers.SelectMany(transfer => new[] { transfer.BuyerName, transfer.SellerName }))
                 .Append("Computer")
@@ -321,6 +330,7 @@
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(name => name, StringComparer.Create(Text.Culture, ignoreCase: true))
                 .ToArray();
+
             FilterTransfers();
         }
         catch (Exception ex)
@@ -340,55 +350,63 @@
             transfer.PlayerName.Contains(playerFilter.Trim(), StringComparison.OrdinalIgnoreCase)
             && (buyerFilter.Length == 0 || string.Equals(transfer.BuyerName, buyerFilter, StringComparison.OrdinalIgnoreCase))
             && (sellerFilter.Length == 0 || string.Equals(transfer.SellerName, sellerFilter, StringComparison.OrdinalIgnoreCase))).ToArray() ?? [];
+
         transferPage = 0;
     }
 
-    private Task ShowPointsAsync() => RunAsync(async () =>
+    private Task ShowPoints() => Run(async () =>
     {
         classificationSelectorsVisible = false;
-        var result = await Points.GetLastRoundPointsAsync();
+        var result = await Points.GetLastRoundPoints();
         ShowRows(TextKey.LastRoundPoints, TextKey.Points, result.Select(x => (x.UserName, x.Points)).ToArray());
     });
 
-    private Task ShowSquadExcessAsync() => RunAsync(async () =>
+    private Task ShowSquadExcess() => Run(async () =>
     {
         classificationSelectorsVisible = false;
-        var result = await Squads.GetSquadExcessAsync();
+        var result = await Squads.GetSquadExcess();
         ShowRows(TextKey.SquadExcess, TextKey.Players, result.Squads.Select(x => (x.UserName, x.PlayerCount)).ToArray());
         squadMatchdayKey = result.MatchdayKey;
     });
 
-    private Task ShowClassificationsAsync() => RunAsync(async () =>
+    private Task ShowClassifications() => Run(async () =>
     {
         classificationMonths = SeasonCalendar.GetMonths(DateOnly.FromDateTime(DateTime.Now));
         selectedMonthIndex = classificationMonths.Count - 1;
         classificationPeriod = ClassificationPeriod.Month;
         classificationSelectorsVisible = true;
-        await LoadClassificationAsync();
+        await LoadClassification();
     });
 
-    private Task RefreshClassificationAsync() => RunAsync(LoadClassificationAsync);
+    private Task RefreshClassification() => Run(LoadClassification);
 
-    private async Task LoadClassificationAsync()
+    private async Task LoadClassification()
     {
         var month = classificationMonths[selectedMonthIndex];
+
         var result = await (classificationPeriod switch
         {
-            ClassificationPeriod.Month => Points.GetMonthlyStandingsAsync(month.Year, month.Month),
-            ClassificationPeriod.FirstHalf => Points.GetFirstHalfStandingsAsync(),
-            ClassificationPeriod.SecondHalf => Points.GetSecondHalfStandingsAsync(),
-            ClassificationPeriod.Season => Points.GetSeasonStandingsAsync(),
+            ClassificationPeriod.Month => Points.GetMonthlyStandings(month.Year, month.Month),
+            ClassificationPeriod.FirstHalf => Points.GetFirstHalfStandings(),
+            ClassificationPeriod.SecondHalf => Points.GetSecondHalfStandings(),
+            ClassificationPeriod.Season => Points.GetSeasonStandings(),
             _ => throw new InvalidOperationException()
         });
+
         ShowRows(TextKey.Standings, TextKey.Points, result.Teams
             .OrderByDescending(team => team.TotalPoints)
             .Select(team => (team.TeamInfo.User.Name, team.TotalPoints)).ToArray());
     }
 
-    private async Task RunAsync(Func<Task> action, bool requiresSession = true, bool moneyAction = false)
+    private async Task Run(Func<Task> action, bool requiresSession = true, bool moneyAction = false)
     {
-        if (busy) return;
+        if (busy)
+        {
+            return;
+        }
+
         busy = true;
+
         try
         {
             if (requiresSession) EnsureSession();
@@ -412,6 +430,7 @@
         {
             try { UpdateSession(); }
             catch { hasSession = false; sessionUsername = ""; }
+
             busy = false;
         }
     }
@@ -447,9 +466,14 @@
 
     private void OnSessionChanged() => _ = InvokeAsync(() =>
     {
-        if (busy || !hasSession) return;
+        if (busy || !hasSession)
+        {
+            return;
+        }
+
         try { UpdateSession(); }
         catch { hasSession = false; sessionUsername = ""; }
+
         StateHasChanged();
     });
 

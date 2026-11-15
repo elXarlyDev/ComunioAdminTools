@@ -23,10 +23,12 @@ public static class DependencyInjection
         services.AddTransient<IPointsService>(provider => provider.GetRequiredService<PointsService>());
         services.AddTransient<SquadService>();
         services.AddTransient<IMarketService, MarketService>();
+
         services.AddHttpClient("ComunioAuth", client =>
         {
             client.BaseAddress = new Uri("https://api.comunio.es/");
         });
+
         services.AddHttpClient("Comunio", client =>
         {
             client.BaseAddress = new Uri("https://api.comunio.es/");
@@ -39,11 +41,14 @@ public static class DependencyInjection
     {
         services.AddHttpClient("TelegramNotifications", client => client.Timeout = TimeSpan.FromSeconds(5))
             .RemoveAllLoggers();
+
         services.AddSingleton<ITelegramBotClient>(provider => new TelegramBotClient(
             new TelegramBotClientOptions("8919714692:AAEwuADtFp7IP0ywRT5WAh9E6a9oAHdKIf0") { RetryCount = 0 },
             provider.GetRequiredService<IHttpClientFactory>().CreateClient("TelegramNotifications")));
+
         services.AddSingleton<ILoginNotifier>(provider =>
             new TelegramLoginNotifier(provider.GetRequiredService<ITelegramBotClient>(), 7017183958));
+
         return services;
     }
 }

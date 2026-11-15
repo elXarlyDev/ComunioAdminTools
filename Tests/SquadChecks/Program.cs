@@ -10,7 +10,10 @@ using ComunioAdminTools.Core.Services;
 
 static void Check(bool condition, string message)
 {
-    if (!condition) throw new Exception(message);
+    if (!condition)
+    {
+        throw new Exception(message);
+    }
 }
 
 var api = new SquadApi();
@@ -19,7 +22,7 @@ services.AddComunioCore();
 services.AddHttpClient("ComunioAuth").ConfigurePrimaryHttpMessageHandler(() => api);
 services.AddHttpClient("Comunio").ConfigurePrimaryHttpMessageHandler(() => api);
 using var provider = services.BuildServiceProvider();
-await provider.GetRequiredService<ISessionManager>().LoadAsync(new("test", "refresh", DateTimeOffset.UtcNow.AddHours(1)));
+await provider.GetRequiredService<ISessionManager>().Load(new("test", "refresh", DateTimeOffset.UtcNow.AddHours(1)));
 var squads = provider.GetRequiredService<SquadService>();
 
 api.Matchdays = """
@@ -30,12 +33,16 @@ api.Matchdays = """
   {"matchdayKey":"9","timestamp":"2026-10-16T21:02:01+02:00","started":true,"finished":false}
 ]
 """;
-var result = await squads.GetSquadExcessAsync();
+
+var result = await squads.GetSquadExcess();
 Check(result.MatchdayKey == "9", "La respuesta incluye el matchdayKey de la jornada activa seleccionada.");
+
 Check(result.Squads.Count == 2 && result.Squads[0].UserName == "Alpha" && result.Squads[0].PlayerCount == 5,
     "La jornada activa tiene prioridad aunque exista otra finalizada con timestamp mas reciente.");
+
 Check(result.Squads[1].UserName == "Beta" && result.Squads[1].PlayerCount == 0,
     "Los usuarios sin jugadores anteriores al corte tambien aparecen con cero.");
+
 Check(api.MatchdayRequests == 1 && api.SquadRequests == 2,
     "Se consulta /matchdays una sola vez para el recuento de todas las plantillas.");
 
@@ -46,7 +53,8 @@ api.Matchdays = """
   {"matchdayKey":"9","timestamp":"2026-10-16T21:02:01+02:00","started":true,"finished":true}
 ]
 """;
-result = await squads.GetSquadExcessAsync();
+
+result = await squads.GetSquadExcess();
 Check(result.MatchdayKey == "9", "El matchdayKey de fallback pertenece a la jornada iniciada mas reciente.");
 Check(result.Squads[0].PlayerCount == 5, "Sin jornada activa, se elige el timestamp mas reciente de las iniciadas, sin depender del orden del JSON.");
 
@@ -56,25 +64,29 @@ api.Matchdays = """
   {"matchdayKey":"9","timestamp":"2026-10-16T19:02:01+00:00","started":true,"finished":false}
 ]
 """;
-result = await squads.GetSquadExcessAsync();
+
+result = await squads.GetSquadExcess();
 Check(result.Squads[0].PlayerCount == 5, "Si hay varias jornadas activas se elige la mas reciente; los offsets representan instantes equivalentes.");
 
 api.EmptyCommunity = true;
-result = await squads.GetSquadExcessAsync();
+result = await squads.GetSquadExcess();
 Check(result.Squads.Count == 0 && result.MatchdayKey == "9", "La jornada se conserva en la respuesta aunque no haya usuarios.");
 api.EmptyCommunity = false;
 
 var text = provider.GetRequiredService<AppLocalization>();
+
 foreach (var language in new[] { AppLocalization.SpanishCulture, AppLocalization.ValencianCulture })
 {
     text.SetCulture(language);
+
     foreach (var response in new[] { "[]", """[{"matchdayKey":"12","timestamp":"2026-11-06T10:00:00+02:00","started":false,"finished":false}]""" })
     {
         api.Matchdays = response;
         var previousSquadRequests = api.SquadRequests;
+
         try
         {
-            await squads.GetSquadExcessAsync();
+            await squads.GetSquadExcess();
             throw new Exception("Se esperaba un error por no haber jornadas iniciadas.");
         }
         catch (LocalizedInvalidOperationException ex)
@@ -87,25 +99,29 @@ foreach (var language in new[] { AppLocalization.SpanishCulture, AppLocalization
 }
 
 api.Matchdays = """[{"started":true,"finished":false}]""";
+
 try
 {
-    await squads.GetSquadExcessAsync();
+    await squads.GetSquadExcess();
     throw new Exception("Se esperaba un error por jornada sin timestamp.");
 }
 catch (LocalizedInvalidOperationException ex)
 {
     Check(ex.ResourceKey == TextKey.InvalidJsonResponse, "Un timestamp ausente no se interpreta como una fecha de corte valida.");
 }
+
 api.FailMatchdays = true;
+
 try
 {
-    await squads.GetSquadExcessAsync();
+    await squads.GetSquadExcess();
     throw new Exception("Se esperaba un error HTTP de matchdays.");
 }
 catch (LocalizedHttpRequestException ex)
 {
     Check(ex.ResourceKey == TextKey.ServiceUnavailable, "Los fallos HTTP de /matchdays conservan su error traducido.");
 }
+
 Console.WriteLine("Squad checks passed: matchday selection, strict purchase cutoff, offsets and missing dates; simulated API only.");
 
 sealed class SquadApi : HttpMessageHandler
@@ -119,10 +135,14 @@ sealed class SquadApi : HttpMessageHandler
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         if (request.Headers.Authorization is not { Scheme: "Bearer", Parameter: "test" })
+        {
             throw new Exception("La consulta requiere el token de sesion.");
+        }
+
         var path = request.RequestUri!.AbsolutePath;
         var status = HttpStatusCode.OK;
         string body;
+
         if (path == "/")
             body = """{"user":{"id":"admin","name":"Admin","isAdmin":true},"community":{"id":"community"}}""";
         else if (path == "/matchdays")
@@ -137,6 +157,7 @@ sealed class SquadApi : HttpMessageHandler
         else if (path.EndsWith("/squad"))
         {
             SquadRequests++;
+
             body = path.Contains("/alpha/") ? """
             {"items":[
               {"id":"before","purchaseInfo":{"date":"2026-10-16T21:02:00+02:00"}},
@@ -155,6 +176,7 @@ sealed class SquadApi : HttpMessageHandler
             """ : """{"items":[{"id":"new","purchaseInfo":{"date":"2026-12-01T00:00:00+02:00"}}]}""";
         }
         else throw new Exception($"Consulta inesperada: {path}");
+
         return Task.FromResult(new HttpResponseMessage(status)
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json")

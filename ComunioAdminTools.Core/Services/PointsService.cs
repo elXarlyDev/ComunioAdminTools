@@ -6,18 +6,19 @@ namespace ComunioAdminTools.Core.Services;
 
 public interface IPointsService
 {
-    Task<IReadOnlyList<PuntosJornadaModel>> GetLastRoundPointsAsync();
-    Task<StandingsModel> GetMonthlyStandingsAsync(int year, int month);
-    Task<StandingsModel> GetFirstHalfStandingsAsync();
-    Task<StandingsModel> GetSecondHalfStandingsAsync();
-    Task<StandingsModel> GetSeasonStandingsAsync();
+    Task<IReadOnlyList<PuntosJornadaModel>> GetLastRoundPoints();
+    Task<StandingsModel> GetMonthlyStandings(int year, int month);
+    Task<StandingsModel> GetFirstHalfStandings();
+    Task<StandingsModel> GetSecondHalfStandings();
+    Task<StandingsModel> GetSeasonStandings();
 }
 
 public sealed class PointsService(IHttpClientFactory factory, ISessionManager sessionManager, AppLocalization text) : CommunityService(factory, sessionManager, text), IPointsService
 {
-    public async Task<IReadOnlyList<PuntosJornadaModel>> GetLastRoundPointsAsync()
+    public async Task<IReadOnlyList<PuntosJornadaModel>> GetLastRoundPoints()
     {
-        var standings = await GetStandingsAsync();
+        var standings = await GetStandings();
+
         return standings.Teams.Select(team => new PuntosJornadaModel
         {
             UserName = team.TeamInfo.User.Name,
@@ -25,21 +26,21 @@ public sealed class PointsService(IHttpClientFactory factory, ISessionManager se
         }).OrderByDescending(item => item.Points).ToList();
     }
 
-    public Task<StandingsModel> GetMonthlyStandingsAsync(int year, int month)
+    public Task<StandingsModel> GetMonthlyStandings(int year, int month)
     {
         _ = new DateOnly(year, month, 1);
-        return GetPeriodStandingsAsync(FormattableString.Invariant($"period=month&year={year}&month={month}"));
+        return GetPeriodStandings(FormattableString.Invariant($"period=month&year={year}&month={month}"));
     }
 
-    public Task<StandingsModel> GetFirstHalfStandingsAsync()
-        => GetPeriodStandingsAsync("period=firstHalf&wpe=true");
+    public Task<StandingsModel> GetFirstHalfStandings()
+        => GetPeriodStandings("period=firstHalf&wpe=true");
 
-    public Task<StandingsModel> GetSecondHalfStandingsAsync()
-        => GetPeriodStandingsAsync("period=secondHalf&wpe=true");
+    public Task<StandingsModel> GetSecondHalfStandings()
+        => GetPeriodStandings("period=secondHalf&wpe=true");
 
-    public Task<StandingsModel> GetSeasonStandingsAsync()
-        => GetPeriodStandingsAsync("period=total");
+    public Task<StandingsModel> GetSeasonStandings()
+        => GetPeriodStandings("period=total");
 
-    private Task<StandingsModel> GetPeriodStandingsAsync(string query)
-        => GetAsync<StandingsModel>($"communities/{Uri.EscapeDataString(Session.Community.Id)}/standings?{query}");
+    private Task<StandingsModel> GetPeriodStandings(string query)
+        => Get<StandingsModel>($"communities/{Uri.EscapeDataString(Session.Community.Id)}/standings?{query}");
 }

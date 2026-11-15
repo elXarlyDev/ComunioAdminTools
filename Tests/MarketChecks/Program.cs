@@ -10,7 +10,10 @@ using ComunioAdminTools.Core.Services;
 
 static void Check(bool condition, string message)
 {
-    if (!condition) throw new Exception(message);
+    if (!condition)
+    {
+        throw new Exception(message);
+    }
 }
 
 var api = new MarketApi();
@@ -20,33 +23,41 @@ services.AddHttpClient("ComunioAuth").ConfigurePrimaryHttpMessageHandler(() => a
 services.AddHttpClient("Comunio").ConfigurePrimaryHttpMessageHandler(() => api);
 using var provider = services.BuildServiceProvider();
 var session = provider.GetRequiredService<ISessionManager>();
-await session.LoadAsync(new("test", "refresh", DateTimeOffset.UtcNow.AddHours(1)));
+await session.Load(new("test", "refresh", DateTimeOffset.UtcNow.AddHours(1)));
 var market = provider.GetRequiredService<IMarketService>();
-var communityUsers = await market.GetCommunityUserNamesAsync();
+var communityUsers = await market.GetCommunityUserNames();
+
 Check(communityUsers.SequenceEqual(new[] { "Current", "No transfers yet" }),
     "The community user list includes members without transfers and trims names.");
-var transfers = await market.GetTransferHistoryAsync();
+
+var transfers = await market.GetTransferHistory();
 Check(api.HistoryRequests == 1, "History must use a single request without pagination.");
 Check(transfers.Count == 3, "Every history item must appear.");
 Check(transfers[0].SellerName == "Buyer" && transfers[0].BuyerName == "Seller", "SALE direction is tradingPartner -> user.");
 Check(transfers[1].SellerName == "Buyer" && transfers[1].BuyerName == "Seller", "PURCHASE also uses tradingPartner -> user.");
+
 Check(transfers[2].PlayerName == "Fornals"
     && transfers[2].SellerName == "Dixeume a la gateta en pau"
     && transfers[2].BuyerName == "Bazar Chino Lollito Plimavela",
     "Fornals was sold by Dixeume to Bazar; SALE must not reverse the parties.");
+
 Check(transfers[0].PlayerName == "Jugador" && transfers[0].ClubName == "Club"
     && transfers[0].Price == 2100006 && transfers[0].QuotedPrice == 2140000,
     "Player, club, transfer price and quoted market price must stay distinct.");
+
 Check(transfers[0].DateChanged == DateTimeOffset.Parse("2026-11-07T04:30:49+01:00")
     && transfers[0].DateChanged.Offset == TimeSpan.FromHours(1), "Execution date must retain its timezone.");
+
 api.Body = """{"items":[],"hasMore":false}""";
-Check((await market.GetTransferHistoryAsync()).Count == 0, "Empty history is valid.");
+Check((await market.GetTransferHistory()).Count == 0, "Empty history is valid.");
+
 foreach (var body in new[] { "{}", """{"items":[{"type":"SALE"}]}""" })
 {
     api.Body = body;
+
     try
     {
-        await market.GetTransferHistoryAsync();
+        await market.GetTransferHistory();
         throw new Exception("Invalid history must not produce misleading rows.");
     }
     catch (LocalizedInvalidOperationException ex)
@@ -54,27 +65,32 @@ foreach (var body in new[] { "{}", """{"items":[{"type":"SALE"}]}""" })
         Check(ex.ResourceKey == TextKey.InvalidJsonResponse, "Invalid history uses the localized JSON error.");
     }
 }
+
 api.Status = HttpStatusCode.ServiceUnavailable;
+
 try
 {
-    await market.GetTransferHistoryAsync();
+    await market.GetTransferHistory();
     throw new Exception("Expected HTTP failure.");
 }
 catch (LocalizedHttpRequestException ex)
 {
     Check(ex.ResourceKey == TextKey.ServiceUnavailable, "HTTP errors remain localized.");
 }
-await session.ClearAsync();
+
+await session.Clear();
 var previousRequests = api.HistoryRequests;
+
 try
 {
-    await market.GetTransferHistoryAsync();
+    await market.GetTransferHistory();
     throw new Exception("Expected authentication failure.");
 }
 catch (AuthenticationRequiredException)
 {
     Check(api.HistoryRequests == previousRequests, "History requires a session before sending a request.");
 }
+
 Console.WriteLine("Market checks passed: authenticated request, limit without offset, transfer direction, fields, dates, empty history and errors; simulated API only.");
 
 sealed class MarketApi : HttpMessageHandler
@@ -100,8 +116,12 @@ sealed class MarketApi : HttpMessageHandler
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         if (request.Headers.Authorization is not { Scheme: "Bearer", Parameter: "test" })
+        {
             throw new Exception("Expected the session token.");
+        }
+
         var profile = request.RequestUri!.AbsolutePath == "/";
+
         if (request.RequestUri.PathAndQuery == "/communities/community/standings?period=total&wpe=true")
         {
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
@@ -110,13 +130,18 @@ sealed class MarketApi : HttpMessageHandler
                     Encoding.UTF8, "application/json")
             });
         }
+
         if (!profile)
         {
             if (request.Method != HttpMethod.Get
                 || request.RequestUri.PathAndQuery != "/communities/community/users/current/offers/history?limit=999999")
+            {
                 throw new Exception($"Unexpected history request: {request.RequestUri}");
+            }
+
             HistoryRequests++;
         }
+
         return Task.FromResult(new HttpResponseMessage(profile ? HttpStatusCode.OK : Status)
         {
             Content = new StringContent(profile
