@@ -104,6 +104,28 @@ el icono o nombre anterior, elimínalo y vuelve a añadirlo tras el despliegue.
 Referencias: [workflows oficiales de Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
 y [despliegue de Blazor WebAssembly](https://learn.microsoft.com/en-us/aspnet/core/blazor/host-and-deploy/webassembly?view=aspnetcore-10.0).
 
+## Iconos de Font Awesome
+
+UI incluye Font Awesome Free 7.3.1 en `wwwroot/lib/fontawesome`, con su licencia.
+Web y Mobile cargan los mismos estilos y fuentes locales, sin depender de un CDN.
+Se incluyen los estilos gratuitos Solid, Regular y Brands. En cualquier componente
+Razor de UI puedes utilizar las clases directamente:
+
+```razor
+<button type="button">
+    <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+    Guardar
+</button>
+<i class="fa-regular fa-circle-check" aria-hidden="true"></i>
+<i class="fa-brands fa-github" aria-hidden="true"></i>
+```
+
+Los iconos decorativos llevan `aria-hidden="true"`. Si un botón solo contiene
+un icono, añade un `aria-label` traducido que describa su acción.
+Para actualizar la biblioteca, sustituye `css/all.min.css`, las fuentes de
+`webfonts` y `LICENSE.txt` por los de la misma versión del
+[paquete oficial](https://github.com/FortAwesome/Font-Awesome/releases/tag/7.3.1).
+
 ## Idiomas
 
 La interfaz incluye un selector de español y valenciano. Los textos de Web,

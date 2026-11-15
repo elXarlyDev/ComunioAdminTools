@@ -18,8 +18,8 @@
             <p class="session-user" title="@sessionUsername">@sessionUsername</p>
             <p class="session-community" title="@CommunityName">@CommunityName</p>
         </div>
-        <button type="button" class="action-button sign-out" disabled="@(busy)"
-                @onclick="Logout">@Text[TextKey.SignOut]</button>
+        <ButtonComponent Icon="fa-solid fa-right-from-bracket" AriaLabel="@Text[TextKey.SignOut]"
+                         Color="transparent" Class="sign-out" Disabled="@busy" OnClick="Logout" />
     </header>
     <div class="main-content" inert="@(busy)">
         <TabComponent Tabs="Tabs" Disabled="@(busy)"

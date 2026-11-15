@@ -1,0 +1,25 @@
+.button-component {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 10px;
+    color: white;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 80ms ease;
+}
+
+.button-component:active:not(:disabled) { transform: scale(.98); }
+.button-component:disabled { opacity: .65; cursor: default; }
+.button-component:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+    .button-component { transition: none; }
+}
